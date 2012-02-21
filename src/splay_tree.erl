@@ -1,6 +1,6 @@
 -module(splay_tree).
 
--export([new/0, store/3, find/2]).
+-export([new/0, store/3, find/2, erase/2]).
 
 -record(node, 
         {
@@ -23,8 +23,30 @@ store(Key, Value, Tree) ->
         _              -> #node{key=Key, value=Value, right=Root}
     end.
 
-find(_, _) ->
-    ok.
+find(Key, Tree) ->
+    Root = splay_node(Key, Tree, root, []),
+    case Root of
+        #node{key=Key, value=Value} -> {{ok, Value}, Root};
+        _ -> {error, Root}
+    end.
+
+erase(Key, Tree) ->
+    Root = splay_node(Key, Tree, root, []),
+    case Root of
+        #node{key=Key, left=undefined, right=Right} -> Right;
+        #node{key=Key, left=Left, right=undefined} -> Left;
+        #node{key=Key, left=Left, right=Right} ->
+            {Node, Left2} = extract_largest_node(Left),
+            Node#node{left=Left2, right=Right};
+        _ -> Root
+    end.
+
+%% TODO: tail recursive
+extract_largest_node(Node=#node{left=undefined}) ->
+    {Node, undefined};
+extract_largest_node(Node) ->
+    {Largest, Left} = extract_largest_node(Node#node.left),
+    {Largest, Node#node{left=Left}}.
 
 splay_node(_, undefined, _, Path) ->
     splay(Path);
