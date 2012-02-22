@@ -73,6 +73,15 @@ find(Key, Tree=#tree{root=Root}) ->
         {Node, Path} -> {{ok,Node#node.val}, Tree#tree{root=splay(Node,Path)}}
     end.
 
+is_key(Key, Tree) ->
+    case find(Key, Tree) of
+        {error, NewTree} -> {false, NewTree};
+        {_,     NewTree} -> {true,  NewTree}
+    end.
+
+%% TODO: 別の名前にして引数もノードをとるようにしても良いかも(deleteみたいな)
+%%       ノード二つをとるならjoinとか
+%%       popでも良いかも
 move_largest_node_to_front(nil) ->
     nil;
 move_largest_node_to_front(Node) ->
@@ -119,91 +128,47 @@ splay(X, [{Dir,P}, {_,G} | Path]) -> % zig-zag
           end,
           Path).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-extract_largest_node(nil) -> %% TODO: tail recursive
-    {nil, nil};
-extract_largest_node(Node=#node{rgt=nil}) ->
-    {Node, nil};
-extract_largest_node(Node=#node{rgt=Rgt}) ->
-    {Largest, Extracted} = extract_largest_node(Rgt),
-    {Largest, Node#node{rgt=Extracted}}.
-
-map_to_list(Fun, Node) ->
-    lists:reverse(map_to_list(Fun, Node, [])).
-
-map_to_list(_, nil, Acc) ->
-    Acc;
-map_to_list(Fun, Node, Acc) ->
-    #node{key=Key, val=Value, lft=Left, rgt=Right} = Node,
-    Acc2 = [Fun(Key, Value)|Acc],
-    Acc3 = map_to_list(Fun, Left, Acc2),
-    map_to_list(Fun, Right, Acc3).
-    
-fetch_keys(Tree) ->
-    map_to_list(fun (Key, _) -> Key end,
-                Tree#tree.root).
-
-filter(Pred, Tree) ->
-    #tree{root=filter_node(Pred, Tree#tree.root)}.
-
-filter_node(_, nil) ->
-    nil;
-filter_node(Pred, Node) ->
-    #node{key=Key, val=Value, lft=Left, rgt=Right} = Node,
-    case Pred(Key, Value) of
-        true  -> 
-            Node#node{lft = filter_node(Pred, Left),
-                      rgt= filter_node(Pred, Right)};
-        false -> 
-            case filter_node(Pred, Left) of
-                nil ->
-                    filter_node(Pred, Right);
-                Left2 ->
-                    {Node2, Left3} = extract_largest_node(Left2),
-                    Node2#node{lft=Left3, rgt=filter_node(Pred, Right)}
-            end
-    end.
-
 fold(Fun, Acc0, Tree) ->
-    fold_node(Fun, Acc0, Tree#tree.root).
+    fold_node(Fun, Tree#tree.root, Acc0).
+
+fold_node(_, nil, Acc) ->
+    Acc;
+fold_node(Fun, #node{key=Key, val=Value, lft=Lft, rgt=Rgt}, Acc) ->
+    fold_node(Fun, Rgt, fold_node(Fun, Lft, Fun(Key, Value, Acc))).
+
+to_list(Tree) ->
+    lists:reverse(fold(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
+
+from_list(List) ->
+    lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
+
+fetch_keys(Tree) ->
+    lists:reverse(fold(fun (Key, _, Acc) -> [Key|Acc] end, [], Tree)).
 
 map(Fun, Tree) ->
-    map_node(Fun, Tree#tree.root).
+    Tree#tree{root=map_node(Fun, Tree#tree.root)}.
 
 map_node(_, nil) ->
     nil;
-map_node(Fun, Node) ->
-    #node{key=Key, val=Value, lft=Left, rgt=Right} = Node,
-    Node#node{val=Fun(Key,Value), 
-              lft=map_node(Fun,Left),
-              rgt=map_node(Fun,Right)}.
+map_node(Fun, #node{key=Key, val=Value, lft=Lft, rgt=Rgt}) ->
+    #node{key=Key,
+          val=Fun(Key,Value),
+          lft=map_node(Fun,Lft),
+          rgt=map_node(Fun,Rgt)}.
 
-from_list(List) ->
-    lists:foldl(fun ({K, V}, Tree) ->
-                        store(K, V, Tree)
-                end,
-                splay_tree:new(),
-                List).
+filter(Pred, Tree) ->
+    Tree#tree{root=filter_node(Pred, Tree#tree.root)}.
 
-to_list(Tree) ->
-    lists:reverse(
-      fold(fun (K, V, Acc) ->
-                   [{K,V}|Acc]
-           end,
-           [],
-           Tree)).
-
-fold_node(_, Acc, nil) ->
-    Acc;
-fold_node(Fun, Acc, Node) ->
-    #node{key=Key, val=Value, lft=Left, rgt=Right} = Node,
-    Acc2 = Fun(Key, Value, Acc),
-    Acc3 = fold_node(Fun, Acc2, Left),
-    fold_node(Fun, Acc3, Right).
-
-is_key(Key, Tree) ->
-    case find(Key, Tree) of
-        {error, NewTree} -> {false, NewTree};
-        {_, NewTree} -> {true, NewTree}
+filter_node(_, nil) ->
+    nil;
+filter_node(Pred, Node=#node{key=Key, val=Value, lft=Lft, rgt=Rgt}) ->
+    case Pred(Key, Value) of
+        true -> 
+            Node#node{lft=filter_node(Pred, Lft),
+                      rgt=filter_node(Pred, Rgt)};
+        false -> 
+            case move_largest_node_to_front(filter_node(Pred, Lft)) of
+                nil   -> filter_node(Pred, Rgt);
+                Front -> Front#node{rgt=filter_node(Pred, Rgt)}
+            end
     end.
-             
