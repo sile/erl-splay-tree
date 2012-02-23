@@ -1,7 +1,7 @@
 -module(splay_tree).
 
 -export([new/0, store/3, find/2, erase/2, 
-         update/4, fetch_keys/1, filter/2,
+         update/4, filter/2,
          fold/3, from_list/1, is_key/2, to_list/1,
          size/1, map/2]).
 
@@ -56,13 +56,8 @@ erase(_, #tree{root=nil}) ->
     #tree{};
 erase(Key, #tree{root=Root, size=Size}) ->
     tree(case path_to_node(Key, Root) of
-             {nil,  Path} -> {Size, splay(Path)};
-             {Node, Path} ->
-                 Deleted = case move_largest_node_to_front(Node#node.lft) of
-                               nil   -> Node#node.rgt;
-                               Front -> Front#node{rgt=Node#node.rgt}
-                           end,
-                 {Size-1, splay(Deleted, Path)}
+             {nil,  Path} -> {Size,   splay(Path)};
+             {Node, Path} -> {Size-1, splay(pop_front(Node), Path)}
          end).
 
 find(_, #tree{root=nil}) ->
@@ -79,9 +74,12 @@ is_key(Key, Tree) ->
         {_,     NewTree} -> {true,  NewTree}
     end.
 
-%% TODO: 別の名前にして引数もノードをとるようにしても良いかも(deleteみたいな)
-%%       ノード二つをとるならjoinとか
-%%       popでも良いかも
+pop_front(Node) ->
+    case move_largest_node_to_front(Node#node.lft) of
+        nil   -> Node#node.rgt;
+        Front -> Front#node{rgt=Node#node.rgt}
+    end.
+
 move_largest_node_to_front(nil) ->
     nil;
 move_largest_node_to_front(Node) ->
@@ -142,9 +140,6 @@ to_list(Tree) ->
 from_list(List) ->
     lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
 
-fetch_keys(Tree) ->
-    lists:reverse(fold(fun (Key, _, Acc) -> [Key|Acc] end, [], Tree)).
-
 map(Fun, Tree) ->
     Tree#tree{root=map_node(Fun, Tree#tree.root)}.
 
@@ -163,12 +158,6 @@ filter_node(_, nil) ->
     nil;
 filter_node(Pred, Node=#node{key=Key, val=Value, lft=Lft, rgt=Rgt}) ->
     case Pred(Key, Value) of
-        true -> 
-            Node#node{lft=filter_node(Pred, Lft),
-                      rgt=filter_node(Pred, Rgt)};
-        false -> 
-            case move_largest_node_to_front(filter_node(Pred, Lft)) of
-                nil   -> filter_node(Pred, Rgt);
-                Front -> Front#node{rgt=filter_node(Pred, Rgt)}
-            end
+        true  -> Node#node{lft=filter_node(Pred, Lft), rgt=filter_node(Pred, Rgt)};
+        false -> filter_node(Pred, pop_front(Node))
     end.
