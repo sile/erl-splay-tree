@@ -33,6 +33,10 @@ test() ->
     ?DO_TEST(test3),
     ?DO_TEST(test4),
     ?DO_TEST(test5),
+    ?DO_TEST(test6),
+    ?DO_TEST(test7),
+    ?DO_TEST(test8),
+    ?DO_TEST(test9),
     ok.
 
 test1() ->
@@ -70,3 +74,53 @@ test5() ->
                 end,
                 splay_tree:from_list(?ENTRIES),
                 ?SORTED_UNIQUE_ENTRIES).
+
+test6() ->
+    Tree = lists:foldl(fun ({Key, Value}, Tree) ->
+                               splay_tree:update(Key, fun (_) -> Value end, Value, Tree)
+                       end,
+                       splay_tree:new(),
+                       ?ENTRIES),
+    ?SORTED_UNIQUE_ENTRIES = splay_tree:to_list(Tree),
+    
+    Tree2 = lists:foldl(fun ({Key, _}, Tree2) ->
+                                splay_tree:update(Key, fun (V) -> {V,V} end, null, Tree2)
+                        end,
+                        Tree,
+                        ?SORTED_UNIQUE_ENTRIES),
+    List = [{K,{V,V}} || {K,V} <- ?SORTED_UNIQUE_ENTRIES],
+    List = splay_tree:to_list(Tree2).
+    
+test7() ->                                                        
+    Tree = 
+        splay_tree:filter(fun (_, V) -> V rem 2 =:= 0 end,
+                          splay_tree:from_list(?ENTRIES)),
+    
+    List = [{K,V} || {K,V} <- ?SORTED_UNIQUE_ENTRIES, V rem 2 =:= 0],
+    List = splay_tree:to_list(Tree).
+
+test8() ->
+    {Keys, Sum} =
+        splay_tree:fold(fun (K, V, {Keys, Sum}) ->
+                                {[K|Keys], Sum+V}
+                        end,
+                        {[], 0},
+                        splay_tree:from_list(?ENTRIES)),
+    
+    {Keys, Sum} =
+        lists:foldl(fun ({K,V}, {Keys2, Sum2}) ->
+                            {[K|Keys2], Sum2+V}
+                    end,
+                    {[], 0},
+                    ?SORTED_UNIQUE_ENTRIES).
+
+test9() ->
+    Tree = 
+        splay_tree:map(fun (K, V) -> {K, V*V} end,
+                       splay_tree:from_list(?ENTRIES)),
+    
+    List = 
+        lists:map(fun ({K,V}) -> {K, {K, V*V}} end,
+                  ?SORTED_UNIQUE_ENTRIES),
+    
+    List = splay_tree:to_list(Tree).
