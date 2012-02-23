@@ -30,30 +30,21 @@ tree({NewSize, NewRoot}) ->
     #tree{root=NewRoot, size=NewSize}.
 
 %%%
-size(Tree) ->
-    Tree#tree.size.
+new() -> #tree{}.
+size(#tree{size=Size}) -> Size.
 
-new() ->
-    #tree{}.
-
-store(Key, Value, #tree{root=nil}) ->
-    #tree{size=1, root=leaf(Key,Value)};
 store(Key, Value, #tree{root=Root, size=Size}) ->
     tree(case path_to_node(Key, Root) of
              {nil,  Path} -> {Size+1, splay(leaf(Key,Value), Path)};
              {Node, Path} -> {Size,   set_val(splay(Node,Path),Value)}
          end).
 
-update(Key, _, Initial, #tree{root=nil}) ->
-    #tree{size=1, root=leaf(Key,Initial)};
 update(Key, Fun, Initial, #tree{root=Root, size=Size}) ->
     tree(case path_to_node(Key, Root) of
              {nil,  Path} -> {Size+1, splay(leaf(Key,Initial), Path)};
              {Node, Path} -> {Size,   set_val(splay(Node,Path), Fun(Node#node.val))}
          end).
 
-erase(_, #tree{root=nil}) ->
-    #tree{};
 erase(Key, #tree{root=Root, size=Size}) ->
     tree(case path_to_node(Key, Root) of
              {nil,  Path} -> {Size, splay(Path)};
@@ -65,8 +56,6 @@ erase(Key, #tree{root=Root, size=Size}) ->
                                       end}
          end).
 
-find(_, #tree{root=nil}) ->
-    {error, #tree{}};
 find(Key, Tree=#tree{root=Root}) ->
     case path_to_node(Key,Root) of
         {nil,  Path} -> {error,              Tree#tree{root=splay(Path)}};
@@ -98,8 +87,8 @@ move_largest_node_to_front(Node=#node{rgt=nil}, Path) ->
 move_largest_node_to_front(Node=#node{rgt=Rgt}, Path) ->
     move_largest_node_to_front(Rgt, [Node|Path]).
 
-path_to_node(Key, Tree) -> 
-    path_to_node(Key, Tree, []).
+path_to_node(Key, Root) -> 
+    path_to_node(Key, Root, []).
 
 path_to_node(Key, Node, Path) ->
     case Node of
@@ -109,8 +98,8 @@ path_to_node(Key, Node, Path) ->
         #node{rgt=Rgt}                          -> path_to_node(Key, Rgt, [{rgt,Node}|Path])
     end.
 
-splay([{_,Node}|Path]) ->
-    splay(Node, Path).
+splay([])              -> nil;
+splay([{_,Node}|Path]) -> splay(Node, Path).
 
 splay(X, []) -> X;
 splay(X, [{Dir, P}]) -> % zig
