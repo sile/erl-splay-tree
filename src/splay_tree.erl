@@ -56,8 +56,13 @@ erase(_, #tree{root=nil}) ->
     #tree{};
 erase(Key, #tree{root=Root, size=Size}) ->
     tree(case path_to_node(Key, Root) of
-             {nil,  Path} -> {Size,   splay(Path)};
-             {Node, Path} -> {Size-1, splay(pop_front(Node), Path)}
+             {nil,  Path} -> {Size, splay(Path)};
+             {Node,   []} -> {Size-1, pop_front(Node)};
+             {Node, Path} -> {Size-1, case {pop_front(Node), hd(Path)} of
+                                          {nil, {lft,N}} -> splay(N#node{lft=nil}, tl(Path));
+                                          {nil, {rgt,N}} -> splay(N#node{rgt=nil}, tl(Path));
+                                          {N, _}         -> splay(N, Path)
+                                      end}
          end).
 
 find(_, #tree{root=nil}) ->
@@ -132,7 +137,7 @@ fold(Fun, Acc0, Tree) ->
 fold_node(_, nil, Acc) ->
     Acc;
 fold_node(Fun, #node{key=Key, val=Value, lft=Lft, rgt=Rgt}, Acc) ->
-    fold_node(Fun, Rgt, fold_node(Fun, Lft, Fun(Key, Value, Acc))).
+    fold_node(Fun, Rgt, Fun(Key, Value, fold_node(Fun, Lft, Acc))).
 
 to_list(Tree) ->
     lists:reverse(fold(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
