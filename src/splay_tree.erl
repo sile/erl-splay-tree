@@ -46,6 +46,7 @@ update(Key, Fun, Initial, #tree{root=Root, size=Size}) ->
         {Node, Path} -> ?TREE(Size,   splay(val(Node,Fun(Node#node.val)), Path))
     end.
 
+%% TODO: バグがあるっぽい: splay_tree_test2:test5/0
 erase(Key, #tree{root=Root, size=Size}) ->
     case path_to_node(Key, Root) of
         {nil,  Path} -> ?TREE(Size, splay(Path));
