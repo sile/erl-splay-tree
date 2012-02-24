@@ -5,6 +5,8 @@
          fold/3, from_list/1, is_key/2, to_list/1,
          size/1, map/2]).
 
+-compile({inline, [leaf/2, val/2, pop_front/1, splay/1]}).
+
 -record(node, 
         {
           key,
@@ -23,38 +25,37 @@
 leaf(Key, Value) ->
     #node{key=Key, val=Value}.
 
-set_val(Node, Value) ->
+val(Node, Value) ->
     Node#node{val=Value}.
 
-tree({NewSize, NewRoot}) ->
-    #tree{root=NewRoot, size=NewSize}.
+-define(TREE(Size, Root), #tree{size=Size, root=Root}).
 
 %%%
 new() -> #tree{}.
 size(#tree{size=Size}) -> Size.
 
 store(Key, Value, #tree{root=Root, size=Size}) ->
-    tree(case path_to_node(Key, Root) of
-             {nil,  Path} -> {Size+1, splay(leaf(Key,Value), Path)};
-             {Node, Path} -> {Size,   set_val(splay(Node,Path),Value)}
-         end).
+    case path_to_node(Key, Root) of
+        {nil,  Path} -> ?TREE(Size+1, splay(leaf(Key,Value), Path));
+        {Node, Path} -> ?TREE(Size,   splay(val(Node,Value), Path))
+    end.
 
 update(Key, Fun, Initial, #tree{root=Root, size=Size}) ->
-    tree(case path_to_node(Key, Root) of
-             {nil,  Path} -> {Size+1, splay(leaf(Key,Initial), Path)};
-             {Node, Path} -> {Size,   set_val(splay(Node,Path), Fun(Node#node.val))}
-         end).
+    case path_to_node(Key, Root) of
+        {nil,  Path} -> ?TREE(Size+1, splay(leaf(Key,Initial),            Path));
+        {Node, Path} -> ?TREE(Size,   splay(val(Node,Fun(Node#node.val)), Path))
+    end.
 
 erase(Key, #tree{root=Root, size=Size}) ->
-    tree(case path_to_node(Key, Root) of
-             {nil,  Path} -> {Size, splay(Path)};
-             {Node,   []} -> {Size-1, pop_front(Node)};
-             {Node, Path} -> {Size-1, case {pop_front(Node), hd(Path)} of
+    case path_to_node(Key, Root) of
+        {nil,  Path} -> ?TREE(Size, splay(Path));
+        {Node,   []} -> ?TREE(Size-1, pop_front(Node));
+        {Node, Path} -> ?TREE(Size-1, case {pop_front(Node), hd(Path)} of
                                           {nil, {lft,N}} -> splay(N#node{lft=nil}, tl(Path));
                                           {nil, {rgt,N}} -> splay(N#node{rgt=nil}, tl(Path));
                                           {N, _}         -> splay(N, Path)
-                                      end}
-         end).
+                                      end)
+    end.
 
 find(Key, Tree=#tree{root=Root}) ->
     case path_to_node(Key,Root) of
@@ -78,7 +79,6 @@ move_largest_node_to_front(nil) ->
     nil;
 move_largest_node_to_front(Node) ->
     move_largest_node_to_front(Node, []).
-
 move_largest_node_to_front(Node=#node{rgt=nil}, Path) ->
     Front = lists:foldl(fun (N, Front) -> N#node{rgt=Front} end,
                         nil,
