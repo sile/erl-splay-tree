@@ -78,16 +78,14 @@ move_largest_node_to_front(nil) ->
     nil;
 move_largest_node_to_front(Node) ->
     move_largest_node_to_front(Node, []).
-move_largest_node_to_front(Node=#node{rgt=nil}, []) ->
-    Node;
-move_largest_node_to_front(Node=#node{rgt=nil}, [H|Path]) ->
 
+move_largest_node_to_front(Node=#node{rgt=nil}, Path) ->
     Front = lists:foldl(fun (N, Front) -> N#node{rgt=Front} end,
-                        H#node{rgt=Node#node.lft},
+                        Node#node.lft,
                         Path),
     Node#node{lft=Front};
-move_largest_node_to_front(Node=#node{rgt=Rgt}, Path) ->
-    move_largest_node_to_front(Rgt, [Node|Path]).
+move_largest_node_to_front(Node, Path) ->
+    move_largest_node_to_front(Node#node.rgt, [Node|Path]).
 
 path_to_node(Key, Root) -> 
     path_to_node(Key, Root, []).
