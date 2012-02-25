@@ -46,18 +46,6 @@ update(Key, Fun, Initial, #tree{root=Root, size=Size}) ->
         {Node, Path} -> ?TREE(Size,   splay(val(Node,Fun(Node#node.val)), Path))
     end.
 
-%% TODO: バグがあるっぽい: splay_tree_test2:test5/0
-erase(Key, #tree{root=Root, size=Size}) ->
-    case path_to_node(Key, Root) of
-        {nil,  Path} -> ?TREE(Size, splay(Path));
-        {Node,   []} -> ?TREE(Size-1, pop_front(Node));
-        {Node, Path} -> ?TREE(Size-1, case {pop_front(Node), hd(Path)} of
-                                          {nil, {lft,N}} -> splay(N#node{lft=nil}, tl(Path));
-                                          {nil, {rgt,N}} -> splay(N#node{rgt=nil}, tl(Path));
-                                          {N, _}         -> splay(N, Path)
-                                      end)
-    end.
-
 find(Key, Tree=#tree{root=Root}) ->
     case path_to_node(Key,Root) of
         {nil,  Path} -> {error,              Tree#tree{root=splay(Path)}};
@@ -70,6 +58,16 @@ is_key(Key, Tree) ->
         {_,     NewTree} -> {true,  NewTree}
     end.
 
+erase(Key, #tree{root=Root, size=Size}) ->
+    case path_to_node(Key, Root) of
+        {nil,  Path} -> ?TREE(Size, splay(Path));
+        {Node,   []} -> ?TREE(Size-1, pop_front(Node));
+        {Node, Path} -> ?TREE(Size-1, case {pop_front(Node), hd(Path)} of
+                                          {C, {lft,P}} -> splay(P#node{lft=C}, tl(Path));
+                                          {C, {rgt,P}} -> splay(P#node{rgt=C}, tl(Path))
+                                      end)
+    end.
+
 pop_front(Node) ->
     case move_largest_node_to_front(Node#node.lft) of
         nil   -> Node#node.rgt;
@@ -80,9 +78,12 @@ move_largest_node_to_front(nil) ->
     nil;
 move_largest_node_to_front(Node) ->
     move_largest_node_to_front(Node, []).
-move_largest_node_to_front(Node=#node{rgt=nil}, Path) ->
+move_largest_node_to_front(Node=#node{rgt=nil}, []) ->
+    Node;
+move_largest_node_to_front(Node=#node{rgt=nil}, [H|Path]) ->
+
     Front = lists:foldl(fun (N, Front) -> N#node{rgt=Front} end,
-                        nil,
+                        H#node{rgt=Node#node.lft},
                         Path),
     Node#node{lft=Front};
 move_largest_node_to_front(Node=#node{rgt=Rgt}, Path) ->
@@ -94,9 +95,9 @@ path_to_node(Key, Root) ->
 path_to_node(Key, Node, Path) ->
     case Node of
         nil                                     -> {nil,  Path};
-        #node{key=Key}                          -> {Node, Path};
         #node{lft=Lft} when Key < Node#node.key -> path_to_node(Key, Lft, [{lft,Node}|Path]);
-        #node{rgt=Rgt}                          -> path_to_node(Key, Rgt, [{rgt,Node}|Path])
+        #node{rgt=Rgt} when Key > Node#node.key -> path_to_node(Key, Rgt, [{rgt,Node}|Path]);
+        #node{key=Key}                          -> {Node, Path}
     end.
 
 splay([])              -> nil;

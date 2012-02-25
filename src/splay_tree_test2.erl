@@ -123,14 +123,17 @@ test3_dict() ->
 test5() ->
     lists:foldl(fun (N, Acc) ->
                         io:format("# ~p~n", [N]),
+                        random:seed({1,1,1}),
                         Tree = loopN(N*N, 
                                      fun (Tree) ->
                                              K = random:uniform(N*N*10),
                                              splay_tree:store(K, K, Tree)
                                            end,
                                      splay_tree:new()),
+
                         [timer:tc(
                            fun () ->
+%                        random:seed({1,1,1}),
                                    splay_tree:size(
                                      loopN(N*N, 
                                            fun (Tree2) ->
@@ -147,14 +150,17 @@ test5() ->
 test5_dict() ->
     lists:foldl(fun (N, Acc) ->
                         io:format("# ~p~n", [N]),
+                        random:seed({1,1,1}),
                         Tree = loopN(N*N, 
                                      fun (Tree) ->
                                              K = random:uniform(N*N*10),
                                              dict:store(K, K, Tree)
                                            end,
                                      dict:new()),
+
                         [timer:tc(
                            fun () ->
+%                        random:seed({1,1,1}),
                                    dict:size(
                                      loopN(N*N, 
                                            fun (Tree2) ->
