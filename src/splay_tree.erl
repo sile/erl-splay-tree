@@ -5,21 +5,14 @@
          fold/3, from_list/1, is_key/2, to_list/1,
          size/1, map/2]).
 
--compile({inline, [leaf/2, val/2, pop_front/1, splay/1]}).
+%%% records
+-record(tree, {root=nil,
+               size=0}).
 
--record(node, 
-        {
-          key,
-          val,
-          lft=nil,
-          rgt=nil
-        }).
-
--record(tree,
-        {
-          root=nil,
-          size=0
-        }).
+-record(node, {key,
+               val,
+               lft=nil,
+               rgt=nil}).
 
 %%%
 leaf(Key, Value) ->
@@ -28,22 +21,20 @@ leaf(Key, Value) ->
 val(Node, Value) ->
     Node#node{val=Value}.
 
--define(TREE(Size, Root), #tree{size=Size, root=Root}).
-
 %%%
 new() -> #tree{}.
 size(#tree{size=Size}) -> Size.
 
 store(Key, Value, #tree{root=Root, size=Size}) ->
     case path_to_node(Key, Root) of
-        {nil,  Path} -> ?TREE(Size+1, splay(leaf(Key,Value), Path));
-        {Node, Path} -> ?TREE(Size,   splay(val(Node,Value), Path))
+        {nil,  Path} -> #tree{size=Size+1, root=splay(leaf(Key,Value), Path)};
+        {Node, Path} -> #tree{size=Size,   root=splay(val(Node,Value), Path)}
     end.
 
 update(Key, Fun, Initial, #tree{root=Root, size=Size}) ->
     case path_to_node(Key, Root) of
-        {nil,  Path} -> ?TREE(Size+1, splay(leaf(Key,Initial),            Path));
-        {Node, Path} -> ?TREE(Size,   splay(val(Node,Fun(Node#node.val)), Path))
+        {nil,  Path} -> #tree{size=Size+1, root=splay(leaf(Key,Initial), Path)};
+        {Node, Path} -> #tree{size=Size,   root=splay(val(Node,Fun(Node#node.val)), Path)}
     end.
 
 find(Key, Tree=#tree{root=Root}) ->
@@ -60,12 +51,13 @@ is_key(Key, Tree) ->
 
 erase(Key, #tree{root=Root, size=Size}) ->
     case path_to_node(Key, Root) of
-        {nil,  Path} -> ?TREE(Size, splay(Path));
-        {Node,   []} -> ?TREE(Size-1, pop_front(Node));
-        {Node, Path} -> ?TREE(Size-1, case {pop_front(Node), hd(Path)} of
-                                          {C, {lft,P}} -> splay(P#node{lft=C}, tl(Path));
-                                          {C, {rgt,P}} -> splay(P#node{rgt=C}, tl(Path))
-                                      end)
+        {nil,  Path} -> #tree{size=Size,   root=splay(Path)};
+        {Node,   []} -> #tree{size=Size-1, root=pop_front(Node)};
+        {Node, Path} -> #tree{size=Size-1, 
+                              root= case {pop_front(Node), hd(Path)} of
+                                        {C, {lft,P}} -> splay(P#node{lft=C}, tl(Path));
+                                        {C, {rgt,P}} -> splay(P#node{rgt=C}, tl(Path))
+                                    end}
     end.
 
 pop_front(Node) ->
