@@ -1,9 +1,8 @@
 -module(splay_tree).
 
 -export([new/0, store/3, find/2, erase/2, 
-         update/4, filter/2,
-         fold/3, from_list/1, is_key/2, to_list/1,
-         size/1, map/2]).
+         update/4, filter/2, size/1, map/2,
+         fold/3, from_list/1, to_list/1]).
 
 %%% records
 -record(tree, {root=nil,
@@ -14,14 +13,7 @@
                lft=nil,
                rgt=nil}).
 
-%%%
-leaf(Key, Value) ->
-    #node{key=Key, val=Value}.
-
-val(Node, Value) ->
-    Node#node{val=Value}.
-
-%%%
+%%% exported functions
 new() -> #tree{}.
 size(#tree{size=Size}) -> Size.
 
@@ -43,12 +35,6 @@ find(Key, Tree=#tree{root=Root}) ->
         {Node, Path} -> {{ok,Node#node.val}, Tree#tree{root=splay(Node,Path)}}
     end.
 
-is_key(Key, Tree) ->
-    case find(Key, Tree) of
-        {error, NewTree} -> {false, NewTree};
-        {_,     NewTree} -> {true,  NewTree}
-    end.
-
 erase(Key, #tree{root=Root, size=Size}) ->
     case path_to_node(Key, Root) of
         {nil,  Path} -> #tree{size=Size,   root=splay(Path)};
@@ -59,6 +45,17 @@ erase(Key, #tree{root=Root, size=Size}) ->
                                         {C, {rgt,P}} -> splay(P#node{rgt=C}, tl(Path))
                                     end}
     end.
+
+to_list(Tree) -> lists:reverse(fold(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
+from_list(List) -> lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
+    
+map(Fun, Tree) -> Tree#tree{root=map_node(Fun, Tree#tree.root)}.
+fold(Fun, Acc0, Tree) -> fold_node(Fun, Tree#tree.root, Acc0).
+filter(Pred, Tree) -> Tree#tree{root=filter_node(Pred, Tree#tree.root)}.
+
+%%% auxiliary functions
+leaf(Key, Value) -> #node{key=Key, val=Value}.
+val(Node, Value) -> Node#node{val=Value}.
 
 pop_front(Node) ->
     case move_largest_node_to_front(Node#node.lft) of
@@ -94,7 +91,7 @@ splay([])              -> nil;
 splay([{_,Node}|Path]) -> splay(Node, Path).
 
 splay(X, []) -> X;
-splay(X, [{Dir, P}]) -> % zig
+splay(X, [{Dir, P}]) ->                % zig
     case Dir of
         lft -> X#node{rgt=P#node{lft=X#node.rgt}};
         rgt -> X#node{lft=P#node{rgt=X#node.lft}}
@@ -105,40 +102,22 @@ splay(X, [{Dir,P}, {Dir,G} | Path]) -> % zig-zig
               rgt -> X#node{lft=P#node{lft=G#node{rgt=P#node.lft}, rgt=X#node.lft}}
           end,
           Path);
-splay(X, [{Dir,P}, {_,G} | Path]) -> % zig-zag
+splay(X, [{Dir,P}, {_,G} | Path]) ->   % zig-zag
     splay(case Dir of
               lft -> X#node{rgt=P#node{lft=X#node.rgt}, lft=G#node{rgt=X#node.lft}};
               rgt -> X#node{lft=P#node{rgt=X#node.lft}, rgt=G#node{lft=X#node.rgt}}
           end,
           Path).
 
-fold(Fun, Acc0, Tree) ->
-    fold_node(Fun, Tree#tree.root, Acc0).
-
 fold_node(_, nil, Acc) ->
     Acc;
 fold_node(Fun, #node{key=Key, val=Value, lft=Lft, rgt=Rgt}, Acc) ->
     fold_node(Fun, Rgt, Fun(Key, Value, fold_node(Fun, Lft, Acc))).
 
-to_list(Tree) ->
-    lists:reverse(fold(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
-
-from_list(List) ->
-    lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
-
-map(Fun, Tree) ->
-    Tree#tree{root=map_node(Fun, Tree#tree.root)}.
-
 map_node(_, nil) ->
     nil;
 map_node(Fun, #node{key=Key, val=Value, lft=Lft, rgt=Rgt}) ->
-    #node{key=Key,
-          val=Fun(Key,Value),
-          lft=map_node(Fun,Lft),
-          rgt=map_node(Fun,Rgt)}.
-
-filter(Pred, Tree) ->
-    Tree#tree{root=filter_node(Pred, Tree#tree.root)}.
+    #node{key=Key, val=Fun(Key,Value), lft=map_node(Fun,Lft), rgt=map_node(Fun,Rgt)}.
 
 filter_node(_, nil) ->
     nil;
