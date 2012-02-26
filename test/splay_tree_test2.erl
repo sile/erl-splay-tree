@@ -1,7 +1,12 @@
+%% performance test module
 -module(splay_tree_test2).
 
--compile(export_all).
+-export([test1/0, test1_dict/0,
+         test2/0, test2_dict/0,
+         test3/0, test3_dict/0,
+         test4/0, test4_dict/0]).
 
+%% auxiliary functions
 loopN(0, _, Acc) -> Acc;
 loopN(N, Fun, Acc) ->
     loopN(N-1, Fun, Fun(Acc)).
@@ -10,7 +15,7 @@ loopN2(0, _, _, Acc) -> Acc;
 loopN2(N, I, Fun, Acc) ->
     loopN2(N-1, I+1, Fun, Fun(I, Acc)).
     
-%% random, small
+%% random, small, store
 test1() ->
     lists:foldl(fun (N, Acc) ->
                         [timer:tc(
@@ -45,8 +50,7 @@ test1_dict() ->
                 [],
                 lists:seq(1, 1000)).      
 
-
-%% seq, small
+%% sequential, small, store
 test2() ->
     lists:foldl(fun (N, Acc) ->
                         [timer:tc(
@@ -82,10 +86,9 @@ test2_dict() ->
                 lists:seq(1, 1000)).      
 
 
-%% random, big
+%% random, big, store
 test3() ->
     lists:foldl(fun (N, Acc) ->
-                        io:format("# ~p~n", [N]),
                         [timer:tc(
                            fun () ->
                                    splay_tree:size(
@@ -99,11 +102,10 @@ test3() ->
                            []) | Acc]
                 end,
                 [],
-                lists:seq(1, 500, 10)).
+                lists:seq(0, 501, 50)).
 
 test3_dict() ->
     lists:foldl(fun (N, Acc) ->
-                        io:format("# ~p~n", [N]),
                         [timer:tc(
                            fun () ->
                                    dict:size(
@@ -117,12 +119,11 @@ test3_dict() ->
                            []) | Acc]
                 end,
                 [],
-                lists:seq(1, 500, 10)).
+                lists:seq(0, 501, 50)).
 
 %% random, big, erase
-test5() ->
+test4() ->
     lists:foldl(fun (N, Acc) ->
-                        io:format("# ~p~n", [N]),
                         random:seed({1,1,1}),
                         Tree = loopN(N*N, 
                                      fun (Tree) ->
@@ -133,7 +134,6 @@ test5() ->
 
                         [timer:tc(
                            fun () ->
-%                        random:seed({1,1,1}),
                                    splay_tree:size(
                                      loopN(N*N, 
                                            fun (Tree2) ->
@@ -145,11 +145,10 @@ test5() ->
                            []) | Acc]
                 end,
                 [],
-                lists:seq(1, 500, 10)).
+                lists:seq(0, 501, 50)).
 
-test5_dict() ->
+test4_dict() ->
     lists:foldl(fun (N, Acc) ->
-                        io:format("# ~p~n", [N]),
                         random:seed({1,1,1}),
                         Tree = loopN(N*N, 
                                      fun (Tree) ->
@@ -160,7 +159,6 @@ test5_dict() ->
 
                         [timer:tc(
                            fun () ->
-%                        random:seed({1,1,1}),
                                    dict:size(
                                      loopN(N*N, 
                                            fun (Tree2) ->
@@ -172,55 +170,4 @@ test5_dict() ->
                            []) | Acc]
                 end,
                 [],
-                lists:seq(1, 500, 10)).
-
-each_lines(Fun, Acc, Path) ->
-    {ok, In} = file:open(Path, [read]),
-    try
-        each_lines_impl(Fun, Acc, In)
-    after
-        file:close(In)
-    end.
-
-each_lines_impl(Fun, Acc, In) ->
-    case file:read_line(In) of
-        eof -> Acc;
-        {error, Reason} -> {error, Reason};
-        {ok, Line} ->
-            each_lines_impl(Fun, Fun(Line, Acc), In)
-    end.
-
-test6(Path) ->
-    {Time, Tree} =
-        timer:tc(
-          fun () ->
-                  each_lines(
-                    fun (Line, Tree) ->
-                            splay_tree:update(Line, fun (N) -> N+1 end, 1, Tree)
-                    end,
-                    splay_tree:new(),
-                    Path)
-          end,
-          []),
-    
-    {Time, 
-     splay_tree:size(Tree),
-     lists:reverse(lists:ukeysort(2, splay_tree:to_list(Tree)))}.
-
-test6_dict(Path) ->
-    {Time, Tree} =
-        timer:tc(
-          fun () ->
-                  each_lines(
-                    fun (Line, Tree) ->
-                            %% TODO: update_counter
-                            dict:update(Line, fun (N) -> N+1 end, 1, Tree)
-                    end,
-                    dict:new(),
-                    Path)
-          end,
-          []),
-    
-    {Time, 
-     dict:size(Tree),
-     lists:reverse(lists:ukeysort(2, dict:to_list(Tree)))}.
+                lists:seq(0, 501, 50)).

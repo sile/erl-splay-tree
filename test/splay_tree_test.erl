@@ -1,9 +1,16 @@
-%% TODO:  ディレクトリ移動
+%% basic test module
 -module(splay_tree_test).
 
 -export([test/0]).
-
--compile(export_all). % XX:
+-export([test1/0,
+         test2/0,
+         test3/0,
+         test4/0,
+         test5/0,
+         test6/0,
+         test7/0,
+         test8/0,
+         test9/0]).
 
 -define(DO_TEST(Name),
         begin
@@ -12,6 +19,7 @@
             io:format("ok~n")
         end).
 
+%% test data
 -define(ENTRIES, [{forth, 100},
                   {erlang, 10},
                   {lisp, 3},
@@ -39,14 +47,17 @@ test() ->
     ?DO_TEST(test9),
     ok.
 
+%% store-1
 test1() ->
     Tree = splay_tree:from_list(?ENTRIES),
     ?SORTED_UNIQUE_ENTRIES = splay_tree:to_list(Tree).
     
+%% store-2
 test2() ->
     Tree = splay_tree:from_list(?ENTRIES ++ ?ENTRIES),
     ?SORTED_UNIQUE_ENTRIES = splay_tree:to_list(Tree).
 
+%% find
 test3() ->
     Tree = splay_tree:from_list(?ENTRIES),
 
@@ -62,10 +73,12 @@ test3() ->
                 Tree,
                 ?SORTED_UNIQUE_ENTRIES).
 
+%% size
 test4() ->
     Size = length(?SORTED_UNIQUE_ENTRIES),
     Size = splay_tree:size(splay_tree:from_list(?ENTRIES)).
 
+%% erase
 test5() ->
     lists:foldl(fun ({Key, _}, Tree) ->
                         Tree2 = splay_tree:erase(Key, Tree),
@@ -75,6 +88,7 @@ test5() ->
                 splay_tree:from_list(?ENTRIES),
                 ?SORTED_UNIQUE_ENTRIES).
 
+%% update
 test6() ->
     Tree = lists:foldl(fun ({Key, Value}, Tree) ->
                                splay_tree:update(Key, fun (_) -> Value end, Value, Tree)
@@ -90,7 +104,8 @@ test6() ->
                         ?SORTED_UNIQUE_ENTRIES),
     List = [{K,{V,V}} || {K,V} <- ?SORTED_UNIQUE_ENTRIES],
     List = splay_tree:to_list(Tree2).
-    
+
+%% filter    
 test7() ->                                                        
     Tree = 
         splay_tree:filter(fun (_, V) -> V rem 2 =:= 0 end,
@@ -99,6 +114,7 @@ test7() ->
     List = [{K,V} || {K,V} <- ?SORTED_UNIQUE_ENTRIES, V rem 2 =:= 0],
     List = splay_tree:to_list(Tree).
 
+%% fold
 test8() ->
     {Keys, Sum} =
         splay_tree:fold(fun (K, V, {Keys, Sum}) ->
@@ -114,6 +130,7 @@ test8() ->
                     {[], 0},
                     ?SORTED_UNIQUE_ENTRIES).
 
+%% map
 test9() ->
     Tree = 
         splay_tree:map(fun (K, V) -> {K, V*V} end,
