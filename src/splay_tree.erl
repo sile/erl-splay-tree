@@ -64,7 +64,7 @@ find(Key, Tree=#tree{root=Root}) ->
 lookup(Key, #tree{root=Root}) ->
     case lookup_node(Key,Root) of
         nil  -> error;
-        Node -> Node#node.val
+        Node -> {ok, Node#node.val}
     end.
 
 -spec erase(key(), tree()) -> tree().

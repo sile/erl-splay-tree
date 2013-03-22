@@ -1,4 +1,4 @@
-all: compile xref eunit                                                   
+all: compile eunit                                                   
 
 compile:
 	@rebar compile
