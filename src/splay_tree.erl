@@ -1,7 +1,8 @@
 -module(splay_tree).
+
 -compile(inline).
 
--export([new/0, store/3, find/2, erase/2, 
+-export([new/0, store/3, find/2, lookup/2, erase/2, 
          update/4, filter/2, size/1, map/2,
          fold/3, from_list/1, to_list/1]).
 
@@ -57,6 +58,13 @@ find(Key, Tree=#tree{root=Root}) ->
     case path_to_node(Key,Root) of
         {nil,  Path} -> {error,              Tree#tree{root=splay(Path)}};
         {Node, Path} -> {{ok,Node#node.val}, Tree#tree{root=splay(Node,Path)}}
+    end.
+
+-spec lookup(key(), tree()) -> error | {ok,value()}.
+lookup(Key, #tree{root=Root}) ->
+    case lookup_node(Key,Root) of
+        nil  -> error;
+        Node -> Node#node.val
     end.
 
 -spec erase(key(), tree()) -> tree().
@@ -127,6 +135,15 @@ path_to_node(Key, Node, Path) ->
         #node{lft=Lft} when Key < Node#node.key -> path_to_node(Key, Lft, [{lft,Node}|Path]);
         #node{rgt=Rgt} when Key > Node#node.key -> path_to_node(Key, Rgt, [{rgt,Node}|Path]);
         #node{key=Key}                          -> {Node, Path}
+    end.
+
+-spec lookup_node(key(), maybe_tree_node()) -> maybe_tree_node().
+lookup_node(Key, Node) ->
+    case Node of
+        nil                                     -> nil;
+        #node{lft=Lft} when Key < Node#node.key -> lookup_node(Key, Lft);
+        #node{rgt=Rgt} when Key > Node#node.key -> lookup_node(Key, Rgt);
+        #node{key=Key}                          -> Node
     end.
 
 -spec splay([{direction(),tree_node()}]) -> maybe_tree_node().
