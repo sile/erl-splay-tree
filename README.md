@@ -5,7 +5,7 @@
 　* http://ja.wikipedia.org/wiki/%E3%82%B9%E3%83%97%E3%83%AC%E3%83%BC%E6%9C%A8
 
 ## バージョン
-* 0.0.2
+* 0.0.3
 
 ## API
 #### splay_tree:new() -> Tree
@@ -39,6 +39,9 @@
 
     Keyに対応する要素の値を検索する。
 
+#### splay_tree:get_value(Key, Tree, DefaultValue) -> Value
+
+    Keyに対応する要素の値を返す。要素が存在しない場合は DefaultValue が返される。
 
 #### splay_tree:erase(Key, Tree) -> NewTree
 

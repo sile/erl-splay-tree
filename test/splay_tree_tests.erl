@@ -61,6 +61,15 @@ lookup_test() ->
     
     ?assertEqual(sorted_unique_entires(), splay_tree:to_list(Tree0)).
 
+get_value_test() ->
+    Tree0 = splay_tree:from_list(entries()),
+    
+    ?assertMatch(10,   splay_tree:get_value(erlang, Tree0, none)),
+    ?assertMatch(none, splay_tree:get_value(scala, Tree0, none)),
+    ?assertMatch(30,   splay_tree:get_value(python, Tree0, none)),
+    
+    ?assertEqual(sorted_unique_entires(), splay_tree:to_list(Tree0)).
+
 erase_test() ->
     Tree0 = splay_tree:from_list(entries()),
     InitialSize = length(sorted_unique_entires()),

@@ -2,7 +2,7 @@
 
 -compile(inline).
 
--export([new/0, store/3, find/2, lookup/2, erase/2, 
+-export([new/0, store/3, find/2, lookup/2, get_value/3, erase/2, 
          update/4, filter/2, size/1, map/2,
          fold/3, from_list/1, to_list/1]).
 
@@ -65,6 +65,13 @@ lookup(Key, #tree{root=Root}) ->
     case lookup_node(Key,Root) of
         nil  -> error;
         Node -> {ok, Node#node.val}
+    end.
+
+-spec get_value(key(), tree(), value()) -> value().
+get_value(Key, #tree{root=Root}, DefaultValue) ->
+    case lookup_node(Key,Root) of
+        nil  -> DefaultValue;
+        Node -> Node#node.val
     end.
 
 -spec erase(key(), tree()) -> tree().
