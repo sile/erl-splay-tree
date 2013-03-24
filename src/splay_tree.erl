@@ -3,7 +3,7 @@
 -compile(inline).
 
 -export([new/0, store/3, find/2, lookup/2, get_value/3, erase/2, 
-         update/4, filter/2, size/1, map/2,
+         size/1, update/4, filter/2, map/2,
          fold/3, from_list/1, to_list/1]).
 
 -export_type([tree/0, key/0, value/0, 
@@ -11,16 +11,13 @@
 
 
 %%% records
--record(tree, {root=nil :: maybe_tree_node(),
-               size=0   :: non_neg_integer()}).
-
 -record(node, {key     :: key(),
                val     :: value(),
                lft=nil :: maybe_tree_node(),
                rgt=nil :: maybe_tree_node()}).
 
 %%% types
--opaque tree()    :: #tree{}.
+-opaque tree()    :: maybe_tree_node().
 -type key()       :: any().
 -type value()     :: any().
 -type update_fn() :: fun((value()) -> value()).
@@ -34,56 +31,55 @@
 
 %%% exported functions
 -spec new() -> tree().
-new() -> #tree{}.
+new() -> nil.
 
 -spec size(tree()) -> non_neg_integer().
-size(#tree{size=Size}) -> Size.
-
+size(Tree) -> fold(fun (_, _, Count) -> Count+1 end, 0, Tree).
+                 
 -spec store(key(), value(), tree()) -> tree().
-store(Key, Value, #tree{root=Root, size=Size}) ->
+store(Key, Value, Root) ->
     case path_to_node(Key, Root) of
-        {nil,  Path} -> #tree{size=Size+1, root=splay(leaf(Key,Value), Path)};
-        {Node, Path} -> #tree{size=Size,   root=splay(val(Node,Value), Path)}
+        {nil,  Path} -> splay(leaf(Key,Value), Path);
+        {Node, Path} -> splay(val(Node,Value), Path)
     end.
 
 -spec update(key(), update_fn(), value(), tree()) -> tree().
-update(Key, Fun, Initial, #tree{root=Root, size=Size}) ->
+update(Key, Fun, Initial, Root) ->
     case path_to_node(Key, Root) of
-        {nil,  Path} -> #tree{size=Size+1, root=splay(leaf(Key,Initial), Path)};
-        {Node, Path} -> #tree{size=Size,   root=splay(val(Node,Fun(Node#node.val)), Path)}
+        {nil,  Path} -> splay(leaf(Key,Initial), Path);
+        {Node, Path} -> splay(val(Node,Fun(Node#node.val)), Path)
     end.
 
 -spec find(key(), tree()) -> {error,tree()} | {{ok,value()},tree()}.
-find(Key, Tree=#tree{root=Root}) ->
+find(Key, Root) ->
     case path_to_node(Key,Root) of
-        {nil,  Path} -> {error,              Tree#tree{root=splay(Path)}};
-        {Node, Path} -> {{ok,Node#node.val}, Tree#tree{root=splay(Node,Path)}}
+        {nil,  Path} -> {error,              splay(Path)};
+        {Node, Path} -> {{ok,Node#node.val}, splay(Node,Path)}
     end.
 
 -spec lookup(key(), tree()) -> error | {ok,value()}.
-lookup(Key, #tree{root=Root}) ->
+lookup(Key, Root) ->
     case lookup_node(Key,Root) of
         nil  -> error;
         Node -> {ok, Node#node.val}
     end.
 
 -spec get_value(key(), tree(), value()) -> value().
-get_value(Key, #tree{root=Root}, DefaultValue) ->
+get_value(Key, Root, DefaultValue) ->
     case lookup_node(Key,Root) of
         nil  -> DefaultValue;
         Node -> Node#node.val
     end.
 
 -spec erase(key(), tree()) -> tree().
-erase(Key, #tree{root=Root, size=Size}) ->
+erase(Key, Root) ->
     case path_to_node(Key, Root) of
-        {nil,  Path} -> #tree{size=Size,   root=splay(Path)};
-        {Node,   []} -> #tree{size=Size-1, root=pop_front(Node)};
-        {Node, Path} -> #tree{size=Size-1, 
-                              root= case {pop_front(Node), hd(Path)} of
-                                        {C, {lft,P}} -> splay(P#node{lft=C}, tl(Path));
-                                        {C, {rgt,P}} -> splay(P#node{rgt=C}, tl(Path))
-                                    end}
+        {nil,  Path} -> splay(Path);
+        {Node,   []} -> pop_front(Node);
+        {Node, Path} -> case {pop_front(Node), hd(Path)} of
+                            {C, {lft,P}} -> splay(P#node{lft=C}, tl(Path));
+                            {C, {rgt,P}} -> splay(P#node{rgt=C}, tl(Path))
+                        end
     end.
 
 -spec to_list(tree()) -> [{key(),value()}].
@@ -93,13 +89,13 @@ to_list(Tree) -> lists:reverse(fold(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree
 from_list(List) -> lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
 
 -spec map(map_fn(), tree()) -> tree().
-map(Fun, Tree) -> Tree#tree{root=map_node(Fun, Tree#tree.root)}.
+map(Fun, Tree) -> map_node(Fun, Tree).
 
 -spec fold(fold_fn(), term(), tree()) -> term().
-fold(Fun, Acc0, Tree) -> fold_node(Fun, Tree#tree.root, Acc0).
+fold(Fun, Acc0, Tree) -> fold_node(Fun, Tree, Acc0).
 
 -spec filter(pred_fn(), tree()) -> tree().
-filter(Pred, Tree) -> Tree#tree{root=filter_node(Pred, Tree#tree.root)}.
+filter(Pred, Tree) -> filter_node(Pred, Tree).
 
 %%% auxiliary functions
 -spec leaf(key(), value()) -> tree_node().
