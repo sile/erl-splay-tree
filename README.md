@@ -5,7 +5,7 @@
 　* http://ja.wikipedia.org/wiki/%E3%82%B9%E3%83%97%E3%83%AC%E3%83%BC%E6%9C%A8
 
 ## バージョン
-* 0.0.3
+* 0.0.4
 
 ## ブランチ
 * lightweight
@@ -33,6 +33,11 @@
      a] Keyに対応する要素がない場合: Initialを値とする要素を追加する
      b] Keyに対応する要素がある場合: Fun(既存の値)を適用し、その返り値で要素の値を更新する
 
+
+#### splay_tree:update(Key, Fun, Tree) -> NewTree | error
+
+    update/4と同様に要素の更新を行う。
+    ただし、キーに対応する要素が存在しない場合は、更新は行われず、結果として error が返る。
 
 #### splay_tree:find(Key, Tree) -> {{ok,Value}, NewTree} | {error, NewTree}
 

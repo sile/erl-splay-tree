@@ -96,7 +96,7 @@ erase_test() ->
                     sorted_unique_entires()),
     ?assertEqual(0, splay_tree:size(Tree4)).
 
-update_test() ->
+update4_test() ->
     Tree0 = splay_tree:from_list(entries()),
     Tree1 = 
         lists:foldl(fun ({Key, Value}, AccTree0) ->
@@ -113,6 +113,14 @@ update_test() ->
     
     Tree2 = splay_tree:update(scala, fun (V) -> V end, undefined, Tree1),
     ?assertEqual({ok, undefined}, splay_tree:lookup(scala, Tree2)).
+
+update3_test() ->
+    Tree0 = splay_tree:from_list(entries()),
+    ?assertEqual(error, splay_tree:update(scala, fun (_) -> 300 end, Tree0)),
+
+    Tree1 = splay_tree:update(lisp, fun (_) -> 300 end, Tree0),
+    ?assert(Tree1 =/= error),
+    ?assertEqual({ok, 300}, splay_tree:lookup(lisp, Tree1)).
 
 filter_test() ->
     Tree0 = splay_tree:from_list(entries()),

@@ -3,7 +3,7 @@
 -compile(inline).
 
 -export([new/0, store/3, find/2, lookup/2, get_value/3, erase/2, 
-         size/1, update/4, filter/2, map/2,
+         size/1, update/4, update/3, filter/2, map/2,
          fold/3, from_list/1, to_list/1]).
 
 -export_type([tree/0, key/0, value/0, 
@@ -47,6 +47,13 @@ store(Key, Value, Root) ->
 update(Key, Fun, Initial, Root) ->
     case path_to_node(Key, Root) of
         {nil,  Path} -> splay(leaf(Key,Initial), Path);
+        {Node, Path} -> splay(val(Node,Fun(Node#node.val)), Path)
+    end.
+
+-spec update(key(), update_fn(), tree()) -> tree()|error.
+update(Key, Fun, Root) ->
+    case path_to_node(Key, Root) of
+        {nil, _Path} -> error;
         {Node, Path} -> splay(val(Node,Fun(Node#node.val)), Path)
     end.
 
