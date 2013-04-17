@@ -3,9 +3,10 @@
 * スプレー木のErlang実装
 * スプレー木
 　* http://ja.wikipedia.org/wiki/%E3%82%B9%E3%83%97%E3%83%AC%E3%83%BC%E6%9C%A8
+* 各要素は == で比較される (ex. 1 と 1.0 は等価)
 
 ## バージョン
-* 0.0.4
+* 0.0.5
 
 ## ブランチ
 * lightweight

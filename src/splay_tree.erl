@@ -144,7 +144,7 @@ path_to_node(Key, Node, Path) ->
         nil                                     -> {nil,  Path};
         #node{lft=Lft} when Key < Node#node.key -> path_to_node(Key, Lft, [{lft,Node}|Path]);
         #node{rgt=Rgt} when Key > Node#node.key -> path_to_node(Key, Rgt, [{rgt,Node}|Path]);
-        #node{key=Key}                          -> {Node, Path}
+        _                                       -> {Node, Path}
     end.
 
 -spec lookup_node(key(), maybe_tree_node()) -> maybe_tree_node().
@@ -153,7 +153,7 @@ lookup_node(Key, Node) ->
         nil                                     -> nil;
         #node{lft=Lft} when Key < Node#node.key -> lookup_node(Key, Lft);
         #node{rgt=Rgt} when Key > Node#node.key -> lookup_node(Key, Rgt);
-        #node{key=Key}                          -> Node
+        _                                       -> Node
     end.
 
 -spec splay([{direction(),tree_node()}]) -> maybe_tree_node().

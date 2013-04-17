@@ -169,3 +169,9 @@ large_entries_test() ->
                             Tree,
                             Entries),
     ?assertEqual(0, splay_tree:size(EmptyTree)).
+
+equal_test() ->
+    Tree = splay_tree:from_list([{1.0, one}]),
+    ?assertMatch({ok, one}, splay_tree:lookup(1, Tree)).
+
+    
