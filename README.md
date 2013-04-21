@@ -8,10 +8,6 @@
 ## バージョン
 * 0.0.5
 
-## ブランチ
-* lightweight
-  * 要素数の取得に O(要素数) の計算量が必要な代わりに、masterブランチに比べてオーバヘッドが少ない
-
 ## API
 #### splay_tree:new() -> Tree
 
@@ -20,7 +16,7 @@
 
 #### splay_tree:size(Tree) -> Size
 
-    木に格納されている要素数を返す
+    木に格納されている要素数を返す。処理オーダーは O(要素数)
 
 
 #### splay_tree:store(Key, Value, Tree) -> NewTree
