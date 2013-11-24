@@ -2,7 +2,8 @@
 
 -compile(inline).
 
--export([new/0, store/3, find/2, lookup/2, get_value/3, erase/2, 
+-export([new/0, store/3, find/2, find_largest/1, find_smallest/1,
+         lookup/2, get_value/3, erase/2, 
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
          fold/3, from_list/1, to_list/1, split/2]).
 
@@ -66,6 +67,20 @@ find(Key, Root) ->
     case path_to_node(Key,Root) of
         {nil,  Path} -> {error,              splay(Path)};
         {Node, Path} -> {{ok,Node#node.val}, splay(Node,Path)}
+    end.
+
+-spec find_largest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+find_largest(Tree) ->
+    case move_largest_node_to_front(Tree) of
+        nil  -> {error, nil};
+        Node -> {{ok, Node#node.key, Node#node.val}, Node}
+    end.
+
+-spec find_smallest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+find_smallest(Tree) ->
+    case move_smallest_node_to_front(Tree) of
+        nil  -> {error, nil};
+        Node -> {{ok, Node#node.key, Node#node.val}, Node}
     end.
 
 -spec lookup(key(), tree()) -> error | {ok,value()}.
@@ -145,6 +160,21 @@ move_largest_node_to_front(Node=#node{rgt=nil}, Path) ->
     Node#node{lft=Front};
 move_largest_node_to_front(Node, Path) ->
     move_largest_node_to_front(Node#node.rgt, [Node|Path]).
+
+-spec move_smallest_node_to_front(maybe_tree_node()) -> maybe_tree_node().
+move_smallest_node_to_front(nil) ->
+    nil;
+move_smallest_node_to_front(Node) ->
+    move_smallest_node_to_front(Node, []).
+
+-spec move_smallest_node_to_front(tree_node(), [tree_node()]) -> tree_node().
+move_smallest_node_to_front(Node=#node{lft=nil}, Path) ->
+    Front = lists:foldl(fun (N, Front) -> N#node{lft=Front} end,
+                        Node#node.rgt,
+                        Path),
+    Node#node{rgt=Front};
+move_smallest_node_to_front(Node, Path) ->
+    move_smallest_node_to_front(Node#node.lft, [Node|Path]).
 
 -spec path_to_node(key(), maybe_tree_node()) -> {maybe_tree_node(), [{direction(),tree_node()}]}.
 path_to_node(Key, Root) -> 

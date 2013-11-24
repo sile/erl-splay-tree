@@ -41,6 +41,14 @@
     Keyに対応する要素の値を検索する。
     ※ スプレー木では、要素検索時にも木のリバランシングが行われるため、新しい木が返り値に含まれる
 
+#### splay_tree:find_largest(Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    最大の要素を検索する。
+
+#### splay_tree:find_smallest(Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    最小の要素を検索する。
+
 #### splay_tree:lookup(Key, Tree) -> {ok,Value} | error
 
     Keyに対応する要素の値を検索する。

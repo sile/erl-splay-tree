@@ -52,6 +52,34 @@ find_test() ->
     
     ?assertEqual(sorted_unique_entires(), splay_tree:to_list(Tree3)).
 
+find_largest_test_() ->
+    [
+     {"最大の要素を検索する",
+      fun () ->
+              Tree = splay_tree:from_list([{5,5}, {1,1}, {3,3}]),
+              ?assertMatch({{ok,5,5}, _}, splay_tree:find_largest(Tree))
+      end},
+     {"空の場合",
+      fun () ->
+              Empty = splay_tree:new(),
+              ?assertEqual({error, Empty}, splay_tree:find_largest(Empty))
+      end}
+    ].
+
+find_smallest_test_() ->
+    [
+     {"最小の要素を検索する",
+      fun () ->
+              Tree = splay_tree:from_list([{5,5}, {1,1}, {3,3}]),
+              ?assertMatch({{ok,1,1}, _}, splay_tree:find_smallest(Tree))
+      end},
+     {"空の場合",
+      fun () ->
+              Empty = splay_tree:new(),
+              ?assertEqual({error, Empty}, splay_tree:find_smallest(Empty))
+      end}
+    ].
+
 lookup_test() ->
     Tree0 = splay_tree:from_list(entries()),
     
