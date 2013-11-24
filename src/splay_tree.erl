@@ -3,6 +3,7 @@
 -compile(inline).
 
 -export([new/0, store/3, find/2, find_largest/1, find_smallest/1,
+         take_largest/1, take_smallest/1,
          lookup/2, get_value/3, erase/2, 
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
          fold/3, from_list/1, to_list/1, split/2]).
@@ -18,7 +19,7 @@
                rgt=nil :: maybe_tree_node()}).
 
 %%% types
--opaque tree()    :: maybe_tree_node().
+-type tree()    :: maybe_tree_node().
 -type key()       :: any().
 -type value()     :: any().
 -type update_fn() :: fun((value()) -> value()).
@@ -81,6 +82,20 @@ find_smallest(Tree) ->
     case move_smallest_node_to_front(Tree) of
         nil  -> {error, nil};
         Node -> {{ok, Node#node.key, Node#node.val}, Node}
+    end.
+
+-spec take_largest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+take_largest(Tree) ->
+    case move_largest_node_to_front(Tree) of
+        nil  -> {error, nil};
+        Node -> {{ok, Node#node.key, Node#node.val}, Node#node.lft}
+    end.
+
+-spec take_smallest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+take_smallest(Tree) ->
+    case move_smallest_node_to_front(Tree) of
+        nil  -> {error, nil};
+        Node -> {{ok, Node#node.key, Node#node.val}, Node#node.rgt}
     end.
 
 -spec lookup(key(), tree()) -> error | {ok,value()}.

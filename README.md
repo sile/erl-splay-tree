@@ -6,7 +6,7 @@
 * 各要素は == で比較される (ex. 1 と 1.0 は等価)
 
 ## バージョン
-* 0.0.5
+* 0.0.7
 
 ## API
 #### splay_tree:new() -> Tree
@@ -48,6 +48,14 @@
 #### splay_tree:find_smallest(Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
 
     最小の要素を検索する。
+
+#### splay_tree:take_largest(Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    最大の要素を取り出す。
+
+#### splay_tree:take_smallest(Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    最小の要素を取り出す。
 
 #### splay_tree:lookup(Key, Tree) -> {ok,Value} | error
 

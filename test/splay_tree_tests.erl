@@ -80,6 +80,44 @@ find_smallest_test_() ->
       end}
     ].
 
+take_largest_test_() ->
+    [
+     {"最大の要素から順に取り出す",
+      fun () ->
+              Tree0 = splay_tree:from_list([{5,5}, {1,1}, {3,3}]),
+
+              {{ok, Key1, Val1}, Tree1} = splay_tree:take_largest(Tree0),
+              ?assertEqual({5,5}, {Key1, Val1}),
+
+              {{ok, Key2, Val2}, Tree2} = splay_tree:take_largest(Tree1),
+              ?assertEqual({3,3}, {Key2, Val2}),
+
+              {{ok, Key3, Val3}, Tree3} = splay_tree:take_largest(Tree2),
+              ?assertEqual({1,1}, {Key3, Val3}),
+
+              ?assertMatch({error, _}, splay_tree:take_largest(Tree3))
+      end}
+    ].
+
+take_smallest_test_() ->
+    [
+     {"最小の要素から順に取り出す",
+      fun () ->
+              Tree0 = splay_tree:from_list([{5,5}, {1,1}, {3,3}]),
+
+              {{ok, Key1, Val1}, Tree1} = splay_tree:take_smallest(Tree0),
+              ?assertEqual({1,1}, {Key1, Val1}),
+
+              {{ok, Key2, Val2}, Tree2} = splay_tree:take_smallest(Tree1),
+              ?assertEqual({3,3}, {Key2, Val2}),
+
+              {{ok, Key3, Val3}, Tree3} = splay_tree:take_smallest(Tree2),
+              ?assertEqual({5,5}, {Key3, Val3}),
+
+              ?assertMatch({error, _}, splay_tree:take_smallest(Tree3))
+      end}
+    ].
+
 lookup_test() ->
     Tree0 = splay_tree:from_list(entries()),
     
