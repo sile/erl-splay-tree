@@ -4,7 +4,7 @@
 
 -export([new/0, store/3, find/2, lookup/2, get_value/3, erase/2, 
          size/1, update/4, update/3, filter/2, map/2,
-         fold/3, from_list/1, to_list/1]).
+         fold/3, from_list/1, to_list/1, split/2]).
 
 -export_type([tree/0, key/0, value/0, 
               update_fn/0, map_fn/0, fold_fn/0, pred_fn/0]).
@@ -89,6 +89,15 @@ erase(Key, Root) ->
                         end
     end.
 
+-spec split(key(), tree()) -> {tree(), tree()}.
+split(BorderKey, Tree) ->
+    {_, Tree2} = find(BorderKey, Tree),
+    case Tree2 of
+        nil                             -> {nil, nil};
+        #node{key=K} when K < BorderKey -> {Tree2#node{rgt=nil}, Tree2#node.rgt};
+        _                               -> {Tree2#node.lft, Tree2#node{lft=nil}}
+    end.
+
 -spec to_list(tree()) -> [{key(),value()}].
 to_list(Tree) -> lists:reverse(fold(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
 
@@ -102,7 +111,7 @@ map(Fun, Tree) -> map_node(Fun, Tree).
 fold(Fun, Acc0, Tree) -> fold_node(Fun, Tree, Acc0).
 
 -spec filter(pred_fn(), tree()) -> tree().
-filter(Pred, Tree) -> filter_node(Pred, Tree).
+filter(Pred, Tree) -> filter_node(Pred, Tree).    
 
 %%% auxiliary functions
 -spec leaf(key(), value()) -> tree_node().

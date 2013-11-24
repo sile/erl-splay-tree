@@ -174,4 +174,34 @@ equal_test() ->
     Tree = splay_tree:from_list([{1.0, one}]),
     ?assertMatch({ok, one}, splay_tree:lookup(1, Tree)).
 
-    
+split_test_() ->
+    [
+     {"指定したキーの位置で分割する",
+      fun () ->
+              List0 = [{1, a}, {2, b}, {3, c}, {4, d}, {5, e}],
+              Tree0 = splay_tree:from_list(List0),
+
+              lists:foreach(
+                fun (N) ->
+                        {ListLeft, ListRight} = lists:split(N-1, List0),
+                        {TreeLeft, TreeRight} = splay_tree:split(N, Tree0),
+                        ?assertEqual(ListLeft, splay_tree:to_list(TreeLeft)),
+                        ?assertEqual(ListRight, splay_tree:to_list(TreeRight))
+                end,
+                lists:seq(1, length(List0)))
+      end},
+     {"空のツリーを分割した場合",
+      fun () ->
+              Empty = splay_tree:new(),
+              ?assertEqual({Empty, Empty}, splay_tree:split(key, Empty))
+      end},
+     {"指定したキーが存在しない場合",
+      fun () ->
+              List0 = [{1, a}, {2, b}, {3, c}],
+              Tree0 = splay_tree:from_list(List0),
+
+              {TreeLeft, TreeRight} = splay_tree:split(2.5, Tree0),
+              ?assertEqual([{1, a}, {2, b}], splay_tree:to_list(TreeLeft)),
+              ?assertEqual([{3, c}], splay_tree:to_list(TreeRight))
+      end}
+    ].

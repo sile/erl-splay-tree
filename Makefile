@@ -15,8 +15,9 @@ eunit:
 edoc:
 	@rebar doc
 
-dialyzer-init:
-	dialyzer --build_plt --apps erts kernel -r ebin
+.dialyzer.plt:
+	touch .dialyzer.plt
+	dialyzer --build_plt --plt .dialyzer.plt --apps erts kernel stdlib
 
-dialyzer:
-	dialyzer --src -r src/
+dialyze: .dialyzer.plt
+	dialyzer --plt .dialyzer.plt -r ebin
