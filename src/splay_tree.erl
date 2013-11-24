@@ -3,7 +3,7 @@
 -compile(inline).
 
 -export([new/0, store/3, find/2, lookup/2, get_value/3, erase/2, 
-         size/1, update/4, update/3, filter/2, map/2,
+         size/1, is_empty/1, update/4, update/3, filter/2, map/2,
          fold/3, from_list/1, to_list/1, split/2]).
 
 -export_type([tree/0, key/0, value/0, 
@@ -17,7 +17,7 @@
                rgt=nil :: maybe_tree_node()}).
 
 %%% types
--type tree()    :: maybe_tree_node().
+-opaque tree()    :: maybe_tree_node().
 -type key()       :: any().
 -type value()     :: any().
 -type update_fn() :: fun((value()) -> value()).
@@ -35,6 +35,10 @@ new() -> nil.
 
 -spec size(tree()) -> non_neg_integer().
 size(Tree) -> fold(fun (_, _, Count) -> Count+1 end, 0, Tree).
+
+-spec is_empty(tree()) -> boolean().
+is_empty(nil) -> true;
+is_empty(_)   -> false.
                  
 -spec store(key(), value(), tree()) -> tree().
 store(Key, Value, Root) ->

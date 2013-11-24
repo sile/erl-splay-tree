@@ -13,23 +13,23 @@
 
     空のスプレー木を作成する
 
-
 #### splay_tree:size(Tree) -> Size
 
     木に格納されている要素数を返す。処理オーダーは O(要素数)
 
+#### splay_tree:is_empty(Tree) -> boolean()
+
+    木が空かどうかを判定する。
 
 #### splay_tree:store(Key, Value, Tree) -> NewTree
 
     木に要素を挿入する。既にKeyに対応する要素が存在する場合は、その値が更新される。
-
 
 #### splay_tree:update(Key, Fun, Initial, Tree) -> NewTree
 
     木の要素を以下のルールに従い、更新する。
      a] Keyに対応する要素がない場合: Initialを値とする要素を追加する
      b] Keyに対応する要素がある場合: Fun(既存の値)を適用し、その返り値で要素の値を更新する
-
 
 #### splay_tree:update(Key, Fun, Tree) -> NewTree | error
 
@@ -56,10 +56,10 @@
 #### splay_tree:split(Key, Tree) -> {LeftTree, RightTree}
 
     Keyで指定した位置で木を分割する。 
-    結果の LeftTree に Key より小さなキーを持つ要素が、  
+    結果の LeftTree には Key より小さなキーを持つ要素が、  
     RightTree には Key と等しいかより大きなキーを持つ要素が、格納される。
 
-##### splay_tree:from_list(KeyValueList) -> Tree
+#### splay_tree:from_list(KeyValueList) -> Tree
 
     {Key,Value}を要素とするリストから、スプレー木を生成する。
     ※ Keyが重複する要素がある場合は、後に出現するものの値が使用される
