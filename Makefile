@@ -1,19 +1,19 @@
 all: compile eunit                                                   
 
 compile:
-	@rebar compile
+	@./rebar compile
 
 xref:
-	@rebar xref
+	@./rebar xref
 
 clean:
-	@rebar clean
+	@./rebar clean
 
 eunit:
-	@rebar eunit
+	@./rebar eunit
 
 edoc:
-	@rebar doc
+	@./rebar doc
 
 .dialyzer.plt:
 	touch .dialyzer.plt
