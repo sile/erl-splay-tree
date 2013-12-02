@@ -49,7 +49,9 @@ find_test() ->
 
     ?assertMatch({{ok, 30}, _}, splay_tree:find(python, Tree2)),
     {{ok, _}, Tree3} = splay_tree:find(python, Tree2),
-    
+    io:format("~w\n", [Tree2]),
+    io:format("~w", [Tree3]),
+
     ?assertEqual(sorted_unique_entires(), splay_tree:to_list(Tree3)).
 
 find_largest_test_() ->
