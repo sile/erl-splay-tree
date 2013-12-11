@@ -12,10 +12,10 @@
          take_largest/1, take_smallest/1,
          lookup/2, get_value/3, erase/2, 
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
-         fold/3, from_list/1, to_list/1, split/2]).
+         foldl/3, foldr/3, foldl_while/3, foldr_while/3, from_list/1, to_list/1, split/2]).
 
 -export_type([tree/0, key/0, value/0, 
-              update_fn/0, map_fn/0, fold_fn/0, pred_fn/0]).
+              update_fn/0, map_fn/0, fold_fn/0, fold_while_fn/0, pred_fn/0]).
 
 %%--------------------------------------------------------------------------------
 %% Types
@@ -25,8 +25,9 @@
 -type value()     :: any().
 -type update_fn() :: fun((value()) -> value()).
 -type map_fn()    :: fun((key(),value()) -> value()).
--type fold_fn()   :: fun((key(),value(),term()) -> term()).
 -type pred_fn()   :: fun((key(),value()) -> boolean()).
+-type fold_fn()   :: fun((key(),value(),term()) -> term()).
+-type fold_while_fn() :: fun ((key(), value(), term()) -> {boolean(), term()}).
 
 -type maybe_tree_node() :: tree_node() | nil.
 -type tree_node()       :: inner_node() | leaf_node().
@@ -41,7 +42,7 @@
 new() -> nil.
 
 -spec size(tree()) -> non_neg_integer().
-size(Tree) -> fold(fun (_, _, Count) -> Count+1 end, 0, Tree).
+size(Tree) -> foldl(fun (_, _, Count) -> Count+1 end, 0, Tree).
 
 -spec is_empty(tree()) -> boolean().
 is_empty(nil) -> true;
@@ -141,7 +142,7 @@ split(BorderKey, Tree) ->
     end.
 
 -spec to_list(tree()) -> [{key(),value()}].
-to_list(Tree) -> lists:reverse(fold(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
+to_list(Tree) -> lists:reverse(foldl(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
 
 -spec from_list([{key(),value()}]) -> tree().
 from_list(List) -> lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
@@ -149,19 +150,38 @@ from_list(List) -> lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(
 -spec map(map_fn(), tree()) -> tree().
 map(Fun, Tree) -> map_node(Fun, Tree).
 
--spec fold(fold_fn(), term(), tree()) -> term().
-fold(Fun, Acc0, Tree) -> fold_node(Fun, Tree, Acc0).
+-spec foldl(fold_fn(), term(), tree()) -> term().
+foldl(Fun, Acc0, Tree) -> foldl_node(Fun, Tree, Acc0).
+
+-spec foldr(fold_fn(), term(), tree()) -> term().
+foldr(Fun, Acc0, Tree) -> foldr_node(Fun, Tree, Acc0).
+
+-spec foldl_while(fold_while_fn(), term(), tree()) -> term().
+foldl_while(Fun, Acc0, Tree) ->
+    try
+        foldl_while_node(Fun, Tree, Acc0)
+    catch
+        throw:{?MODULE, break, AccFinal} -> AccFinal
+    end.
+
+-spec foldr_while(fold_while_fn(), term(), tree()) -> term().
+foldr_while(Fun, Acc0, Tree) ->
+    try
+        foldr_while_node(Fun, Tree, Acc0)
+    catch
+        throw:{?MODULE, break, AccFinal} -> AccFinal
+    end.
 
 -spec filter(pred_fn(), tree()) -> tree().
 filter(Pred, Tree) ->
-    fold(fun (Key, Value, AccTree) ->
-                 case Pred(Key, Value) of
-                     false -> AccTree;
-                     true  -> store(Key, Value, AccTree)
-                 end
-         end,
-         new(),
-         Tree).
+    foldl(fun (Key, Value, AccTree) ->
+                  case Pred(Key, Value) of
+                      false -> AccTree;
+                      true  -> store(Key, Value, AccTree)
+                  end
+          end,
+          new(),
+          Tree).
 
 %%--------------------------------------------------------------------------------
 %% Internal Functions
@@ -280,12 +300,33 @@ splay(X, [{Dir,P}, {_,G} | Path]) ->   % zig-zag
           end,
           Path).
 
--spec fold_node(fold_fn(), maybe_tree_node(), term()) -> term().
-fold_node(_Fun, nil, Acc)                 -> Acc;
-fold_node(Fun, {Key, Val}, Acc)           -> Fun(Key, Val, Acc);
-fold_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> fold_node(Fun, Rgt, Fun(Key, Val, fold_node(Fun, Lft, Acc))).
-
 -spec map_node(map_fn(), maybe_tree_node()) -> maybe_tree_node().
 map_node(_Fun, nil)                 -> nil;
 map_node(Fun, {Key, Val})           -> {Key, Fun(Key, Val)};
 map_node(Fun, {Key, Val, Lft, Rgt}) -> {Key, Fun(Key, Val), map_node(Fun, Lft), map_node(Fun, Rgt)}.
+
+-spec foldl_node(fold_fn(), maybe_tree_node(), term()) -> term().
+foldl_node(_Fun, nil, Acc)                 -> Acc;
+foldl_node(Fun, {Key, Val}, Acc)           -> Fun(Key, Val, Acc);
+foldl_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldl_node(Fun, Rgt, Fun(Key, Val, foldl_node(Fun, Lft, Acc))).
+
+-spec foldr_node(fold_fn(), maybe_tree_node(), term()) -> term().
+foldr_node(_Fun, nil, Acc)                 -> Acc;
+foldr_node(Fun, {Key, Val}, Acc)           -> Fun(Key, Val, Acc);
+foldr_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldr_node(Fun, Lft, Fun(Key, Val, foldr_node(Fun, Rgt, Acc))).
+
+-define(MAYBE_BREAK(Result),
+        case Result of
+            {false, Value} -> throw({?MODULE, break, Value});
+            {true,  Value} -> Value
+        end).
+
+-spec foldl_while_node(fold_while_fn(), maybe_tree_node(), term()) -> term().
+foldl_while_node(_Fun, nil, Acc)                 -> Acc;
+foldl_while_node(Fun, {Key, Val}, Acc)           -> ?MAYBE_BREAK(Fun(Key, Val, Acc));
+foldl_while_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldl_while_node(Fun, Rgt, ?MAYBE_BREAK(Fun(Key, Val, foldl_while_node(Fun, Lft, Acc)))).
+
+-spec foldr_while_node(fold_while_fn(), maybe_tree_node(), term()) -> term().
+foldr_while_node(_Fun, nil, Acc)                 -> Acc;
+foldr_while_node(Fun, {Key, Val}, Acc)           -> ?MAYBE_BREAK(Fun(Key, Val, Acc));
+foldr_while_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldr_while_node(Fun, Lft, ?MAYBE_BREAK(Fun(Key, Val, foldr_while_node(Fun, Rgt, Acc)))).

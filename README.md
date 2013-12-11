@@ -6,7 +6,7 @@
 * 各要素は == で比較される (ex. 1 と 1.0 は等価)
 
 ## バージョン
-* 0.1.0
+* 0.2.0
 
 ## API
 #### splay_tree:new() -> Tree
@@ -93,11 +93,36 @@
 
     木の全ての要素に述語関数Pred(Key,Value)を適用し、結果がfalseとなった要素を木から除去する
 
-#### splay_tree:fold(Fun, Acc0, Tree) -> Acc
+#### splay_tree:foldl(Fun, Acc0, Tree) -> Acc
 
-    木の要素の畳み込みを行う。
+    キーの昇順に、木の要素の畳み込みを行う。
     畳み込み:
      1] 木の始めの要素に対してFun(Key, Value, Acc0)を適用する
      2] 二番目以降の要素に対してFun(Key, Value, 一つ前の適用結果)を実行する
-     3] 一番最後に要素に対する適用結果がAccとなり、fold関数呼び出し元に返される
-     ※ 要素の走査順はキーの値の昇順
+     3] 一番最後に要素に対する適用結果がAccとなり、foldl関数呼び出し元に返される
+
+#### splay_tree:foldr(Fun, Acc0, Tree) -> Acc
+
+    キーの降順に、木の要素の畳み込みを行う。
+    畳み込み:
+     1] 木の始めの要素に対してFun(Key, Value, Acc0)を適用する
+     2] 二番目以降の要素に対してFun(Key, Value, 一つ前の適用結果)を実行する
+     3] 一番最後に要素に対する適用結果がAccとなり、foldr関数呼び出し元に返される
+
+#### splay_tree:foldl_while(Fun, Acc0, Tree) -> Acc
+
+    畳み込み関数がfalseを返すまで、キーの昇順に、木の要素の畳み込みを行う。
+    畳み込み:
+     1] 木の始めの要素に対してFun(Key, Value, Acc0)を適用する
+     2-a] 関数適用結果が{false, AccTmp}の場合は、そこで畳み込みは終了する (3へ)
+     2-b] 関数適用結果が{true, AccTmp}の場合は、二番目以降の要素に対してFun(Key, Value, AccTmp)を実行する
+     3] 一番最後に要素に対する適用結果タプルの二番目の値がAccとなり、foldl_while関数呼び出し元に返される
+
+#### splay_tree:foldr_while(Fun, Acc0, Tree) -> Acc
+
+    畳み込み関数がfalseを返すまで、キーの降順に、木の要素の畳み込みを行う。
+    畳み込み:
+     1] 木の始めの要素に対してFun(Key, Value, Acc0)を適用する
+     2-a] 関数適用結果が{false, AccTmp}の場合は、そこで畳み込みは終了する (3へ)
+     2-b] 関数適用結果が{true, AccTmp}の場合は、二番目以降の要素に対してFun(Key, Value, AccTmp)を実行する
+     3] 一番最後に要素に対する適用結果タプルの二番目の値がAccとなり、foldr_while関数呼び出し元に返される

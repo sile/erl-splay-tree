@@ -199,14 +199,46 @@ filter_test() ->
 
     ?assertEqual(Expected, splay_tree:to_list(OddTree)).
 
-fold_test() ->
-    TreeSum = splay_tree:fold(fun (_, V, Sum) -> V + Sum end,
+foldl_test() ->
+    TreeSum = splay_tree:foldl(fun (_, V, Sum) -> V + Sum end,
                               0,
-                              splay_tree:from_list(entries())),
+                               splay_tree:from_list(entries())),
     
     ListSum = lists:foldl(fun ({_, V}, Sum) -> V + Sum end,
                           0,
                           sorted_unique_entires()),
+    ?assertEqual(ListSum, TreeSum).
+
+foldr_test() ->
+    TreeSum = splay_tree:foldr(fun (_, V, Sum) -> V + Sum end,
+                              0,
+                               splay_tree:from_list(entries())),
+    
+    ListSum = lists:foldr(fun ({_, V}, Sum) -> V + Sum end,
+                          0,
+                          sorted_unique_entires()),
+    ?assertEqual(ListSum, TreeSum).
+
+foldl_while_test() ->
+    TreeSum = splay_tree:foldl_while(fun (_, V, Sum) -> {Sum < 5, V + Sum} end,
+                                     0,
+                                     splay_tree:from_list(entries())),
+
+    {_, ListSum} = lists:foldl(fun (_, {Prev, Sum}) when Prev > 5 -> {Prev, Sum};
+                                   ({_, V}, {_Prev, Sum}) -> {Sum, V + Sum} end,
+                               {0, 0},
+                               sorted_unique_entires()),
+    ?assertEqual(ListSum, TreeSum).
+
+foldr_while_test() ->
+    TreeSum = splay_tree:foldr_while(fun (_, V, Sum) -> {Sum < 5, V + Sum} end,
+                                     0,
+                                     splay_tree:from_list(entries())),
+    
+    {_, ListSum} = lists:foldr(fun (_, {Prev, Sum}) when Prev > 5 -> {Prev, Sum};
+                                   ({_, V}, {_Prev, Sum}) -> {Sum, V + Sum} end,
+                               {0, 0},
+                               sorted_unique_entires()),
     ?assertEqual(ListSum, TreeSum).
 
 map_test() ->
