@@ -1,13 +1,12 @@
 {application, splay_tree,
  [
   {description, "A splay-tree implementation"},
-  {vsn, "0.2.0"},
+  {vsn, "0.2.1"},
   {registered, []},
   {modules, [splay_tree]},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {mod, { splay_tree_app, []}},
   {env, []}
  ]}.
