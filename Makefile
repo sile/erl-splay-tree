@@ -1,7 +1,9 @@
+ERLC_OPTS="[warnings_as_errors, warn_export_all, warn_untyped_record]"
+
 all: compile eunit                                                   
 
 compile:
-	@./rebar compile
+	@ERL_COMPILER_OPTIONS=$(ERLC_OPTS) ./rebar compile
 
 xref:
 	@./rebar xref
