@@ -14,13 +14,15 @@
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
          foldl/3, foldr/3, foldl_while/3, foldr_while/3, from_list/1, to_list/1, split/2]).
 
--export_type([tree/0, key/0, value/0, 
+-export_type([tree/0, tree/2, key/0, value/0, 
               update_fn/0, map_fn/0, fold_fn/0, fold_while_fn/0, pred_fn/0]).
 
 %%--------------------------------------------------------------------------------
 %% Types
 %%--------------------------------------------------------------------------------
--type tree()      :: maybe_tree_node().
+-type tree()             :: maybe_tree_node().
+-type tree(_Key, _Vlaue) :: maybe_tree_node().
+
 -type key()       :: any().
 -type value()     :: any().
 -type update_fn() :: fun((value()) -> value()).
