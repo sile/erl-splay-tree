@@ -10,11 +10,12 @@
 %%--------------------------------------------------------------------------------
 -export([new/0, store/3, find/2, find_largest/1, find_smallest/1,
          take_largest/1, take_smallest/1,
-         lookup/2, get_value/3, erase/2, 
+         lookup/2, get_value/3, erase/2,
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
+         keys/1, values/1,
          foldl/3, foldr/3, foldl_while/3, foldr_while/3, from_list/1, to_list/1, split/2]).
 
--export_type([tree/0, tree/2, key/0, value/0, 
+-export_type([tree/0, tree/2, key/0, value/0,
               update_fn/0, map_fn/0, fold_fn/0, fold_while_fn/0, pred_fn/0]).
 
 %%--------------------------------------------------------------------------------
@@ -49,7 +50,7 @@ size(Tree) -> foldl(fun (_, _, Count) -> Count+1 end, 0, Tree).
 -spec is_empty(tree()) -> boolean().
 is_empty(nil) -> true;
 is_empty(_)   -> false.
-                 
+
 -spec store(key(), value(), tree()) -> tree().
 store(Key, Value, Root) ->
     case path_to_node(Key, Root) of
@@ -144,7 +145,13 @@ split(BorderKey, Tree) ->
     end.
 
 -spec to_list(tree()) -> [{key(),value()}].
-to_list(Tree) -> lists:reverse(foldl(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree)).
+to_list(Tree) -> foldr(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree).
+
+-spec keys(tree()) -> [key()].
+keys(Tree) -> foldr(fun (K, _, Acc) -> [K|Acc] end, [], Tree).
+
+-spec values(tree()) -> [value()].
+values(Tree) -> foldr(fun (_, V, Acc) -> [V|Acc] end, [], Tree).
 
 -spec from_list([{key(),value()}]) -> tree().
 from_list(List) -> lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
@@ -256,7 +263,7 @@ move_smallest_node_to_front(Node, Path) ->
     end.
 
 -spec path_to_node(key(), maybe_tree_node()) -> {maybe_tree_node(), [{direction(),tree_node()}]}.
-path_to_node(Key, Root) -> 
+path_to_node(Key, Root) ->
     path_to_node(Key, Root, []).
 
 -spec path_to_node(key(), maybe_tree_node(), [{direction(),tree_node()}]) ->
@@ -288,7 +295,7 @@ splay(X, [{Dir, P}]) ->                % zig
     case Dir of
         lft -> rgt(X, lft(P, rgt(X)));
         rgt -> lft(X, rgt(P, lft(X)))
-    end;    
+    end;
 splay(X, [{Dir,P}, {Dir,G} | Path]) -> % zig-zig
     splay(case Dir of
               lft -> rgt(X, rgt_lft(P, lft(G, rgt(P)), rgt(X)));
