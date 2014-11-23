@@ -1,3 +1,4 @@
+%% coding: latin-1
 -module(splay_tree_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -40,10 +41,10 @@ find_test() ->
     ?assertMatch({error, _}, splay_tree:find(erlang, splay_tree:new())),
 
     Tree0 = splay_tree:from_list(entries()),
-    
+
     ?assertMatch({{ok, 10}, _}, splay_tree:find(erlang, Tree0)),
     {{ok, _}, Tree1} = splay_tree:find(erlang, Tree0),
-    
+
     ?assertMatch({error, _}, splay_tree:find(scala, Tree1)),
     {error, Tree2} = splay_tree:find(scala, Tree1),
 
@@ -122,20 +123,20 @@ take_smallest_test_() ->
 
 lookup_test() ->
     Tree0 = splay_tree:from_list(entries()),
-    
+
     ?assertMatch({ok, 10}, splay_tree:lookup(erlang, Tree0)),
     ?assertMatch(error,    splay_tree:lookup(scala, Tree0)),
     ?assertMatch({ok, 30}, splay_tree:lookup(python, Tree0)),
-    
+
     ?assertEqual(sorted_unique_entires(), splay_tree:to_list(Tree0)).
 
 get_value_test() ->
     Tree0 = splay_tree:from_list(entries()),
-    
+
     ?assertMatch(10,   splay_tree:get_value(erlang, Tree0, none)),
     ?assertMatch(none, splay_tree:get_value(scala, Tree0, none)),
     ?assertMatch(30,   splay_tree:get_value(python, Tree0, none)),
-    
+
     ?assertEqual(sorted_unique_entires(), splay_tree:to_list(Tree0)).
 
 erase_test() ->
@@ -146,7 +147,7 @@ erase_test() ->
     Tree1 = splay_tree:erase(erlang, Tree0),
     ?assertEqual(InitialSize-1, splay_tree:size(Tree1)),
     ?assertEqual(error, splay_tree:lookup(erlang, Tree1)),
-    
+
     Tree2 = splay_tree:erase(scala, Tree1),
     ?assertEqual(InitialSize-1, splay_tree:size(Tree2)),
 
@@ -154,7 +155,7 @@ erase_test() ->
     ?assertEqual(InitialSize-2, splay_tree:size(Tree3)),
     ?assertEqual(error, splay_tree:lookup(python, Tree3)),
 
-    Tree4 = 
+    Tree4 =
         lists:foldl(fun ({Key, _}, AccTree0) ->
                             AccTree1 = splay_tree:erase(Key, AccTree0),
                             ?assertEqual(error, splay_tree:lookup(Key, AccTree1)),
@@ -166,7 +167,7 @@ erase_test() ->
 
 update4_test() ->
     Tree0 = splay_tree:from_list(entries()),
-    Tree1 = 
+    Tree1 =
         lists:foldl(fun ({Key, Value}, AccTree0) ->
                             UpdateFn = fun (V) -> {V, V} end,
                             AccTree1 = splay_tree:update(Key, UpdateFn, undefined, AccTree0),
@@ -175,10 +176,10 @@ update4_test() ->
                     end,
                     Tree0,
                     sorted_unique_entires()),
-    
+
     Expected = [{K,{V,V}} || {K,V} <- sorted_unique_entires()],
     ?assertEqual(Expected, splay_tree:to_list(Tree1)),
-    
+
     Tree2 = splay_tree:update(scala, fun (V) -> V end, undefined, Tree1),
     ?assertEqual({ok, undefined}, splay_tree:lookup(scala, Tree2)).
 
@@ -203,7 +204,7 @@ foldl_test() ->
     TreeSum = splay_tree:foldl(fun (_, V, Sum) -> V + Sum end,
                               0,
                                splay_tree:from_list(entries())),
-    
+
     ListSum = lists:foldl(fun ({_, V}, Sum) -> V + Sum end,
                           0,
                           sorted_unique_entires()),
@@ -213,7 +214,7 @@ foldr_test() ->
     TreeSum = splay_tree:foldr(fun (_, V, Sum) -> V + Sum end,
                               0,
                                splay_tree:from_list(entries())),
-    
+
     ListSum = lists:foldr(fun ({_, V}, Sum) -> V + Sum end,
                           0,
                           sorted_unique_entires()),
@@ -234,7 +235,7 @@ foldr_while_test() ->
     TreeSum = splay_tree:foldr_while(fun (_, V, Sum) -> {Sum < 5, V + Sum} end,
                                      0,
                                      splay_tree:from_list(entries())),
-    
+
     {_, ListSum} = lists:foldr(fun (_, {Prev, Sum}) when Prev > 5 -> {Prev, Sum};
                                    ({_, V}, {_Prev, Sum}) -> {Sum, V + Sum} end,
                                {0, 0},
@@ -255,14 +256,14 @@ large_entries_test() ->
     Entries = dict:to_list(
                 dict:from_list(
                   [{random:uniform(), N} || N <- lists:seq(1, 10000)])),
-    
+
     Tree = splay_tree:from_list(Entries),
-    
+
     lists:foreach(fun ({Key, Value}) ->
                           ?assertEqual({ok,Value}, splay_tree:lookup(Key, Tree))
                   end,
                   Entries),
-    
+
     EmptyTree = lists:foldl(fun ({Key, _}, AccTree) ->
                                     splay_tree:erase(Key, AccTree)
                             end,
