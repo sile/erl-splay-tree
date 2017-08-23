@@ -247,8 +247,8 @@ move_largest_node_to_front(Node) -> move_largest_node_to_front(Node, []).
 -spec move_largest_node_to_front(tree_node(), [tree_node()]) -> tree_node().
 move_largest_node_to_front(Node, Path) ->
     case rgt(Node) of
-        nil -> lft(Node, lists:foldl(fun rgt/2, lft(Node), Path));
-        Rgt -> move_largest_node_to_front(Rgt, [Node|Path])
+        nil -> splay(Node, Path);
+        Rgt -> move_largest_node_to_front(Rgt, [{rgt, Node}|Path])
     end.
 
 -spec move_smallest_node_to_front(maybe_tree_node()) -> maybe_tree_node().
@@ -258,8 +258,8 @@ move_smallest_node_to_front(Node) -> move_smallest_node_to_front(Node, []).
 -spec move_smallest_node_to_front(tree_node(), [tree_node()]) -> tree_node().
 move_smallest_node_to_front(Node, Path) ->
     case lft(Node) of
-        nil -> rgt(Node, lists:foldl(fun lft/2, rgt(Node), Path));
-        Lft -> move_smallest_node_to_front(Lft, [Node|Path])
+        nil -> splay(Node, Path);
+        Lft -> move_smallest_node_to_front(Lft, [{lft, Node}|Path])
     end.
 
 -spec path_to_node(key(), maybe_tree_node()) -> {maybe_tree_node(), [{direction(),tree_node()}]}.
