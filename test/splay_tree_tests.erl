@@ -66,6 +66,12 @@ find_largest_test_() ->
       fun () ->
               Empty = splay_tree:new(),
               ?assertEqual({error, Empty}, splay_tree:find_largest(Empty))
+      end},
+     {"find関数とは性能を除いて同じ挙動(木の形)となる",
+      fun () ->
+              T = splay_tree:from_list([{N, N} || N <- lists:seq(5, 1, -1)]),
+              ?assertEqual(element(2, splay_tree:find(5, T)),
+                           element(2, splay_tree:find_largest(T)))
       end}
     ].
 
@@ -80,6 +86,12 @@ find_smallest_test_() ->
       fun () ->
               Empty = splay_tree:new(),
               ?assertEqual({error, Empty}, splay_tree:find_smallest(Empty))
+      end},
+     {"find関数とは性能を除いて同じ挙動(木の形)となる",
+      fun () ->
+              T = splay_tree:from_list([{N, N} || N <- lists:seq(1, 5)]),
+              ?assertEqual(element(2, splay_tree:find(1, T)),
+                           element(2, splay_tree:find_smallest(T)))
       end}
     ].
 

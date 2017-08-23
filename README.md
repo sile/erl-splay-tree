@@ -6,7 +6,7 @@
 * 各要素は == で比較される (ex. 1 と 1.0 は等価)
 
 ## バージョン
-* 0.2.3
+* 0.2.5
 
 ## API
 #### splay_tree:new() -> Tree
@@ -71,8 +71,8 @@
 
 #### splay_tree:split(Key, Tree) -> {LeftTree, RightTree}
 
-    Keyで指定した位置で木を分割する。 
-    結果の LeftTree には Key より小さなキーを持つ要素が、  
+    Keyで指定した位置で木を分割する。
+    結果の LeftTree には Key より小さなキーを持つ要素が、
     RightTree には Key と等しいかより大きなキーを持つ要素が、格納される。
 
 #### splay_tree:from_list(KeyValueList) -> Tree
