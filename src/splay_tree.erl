@@ -10,6 +10,7 @@
 %%--------------------------------------------------------------------------------
 -export([new/0, store/3, find/2, find_largest/1, find_smallest/1,
          take_largest/1, take_smallest/1,
+         find_lower_bound/2, find_upper_bound/2,
          lookup/2, get_value/3, erase/2,
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
          keys/1, values/1,
@@ -144,6 +145,31 @@ split(BorderKey, Tree) ->
             end
     end.
 
+-spec find_lower_bound(key(), tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
+find_lower_bound(Key, Tree) ->
+    {Left, Right} = split(Key, Tree),
+    case Right of
+        nil            -> {error, Left};
+        {K, V, nil, _} -> {{ok, K, V}, lft(Right, Left)};
+        {K, V}         -> {{ok, K, V}, lft(Right, Left)}
+    end.
+
+-spec find_upper_bound(key(), tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
+find_upper_bound(Key, Tree) ->
+    {Left, Right} = split(Key, Tree),
+    case Right of
+        nil                       -> {error, Left};
+        {Key, Value}              -> {error, store(Key, Value, Left)};
+        {Key, Value, nil, Right2} ->
+            Left2 = store(Key, Value, Left),
+            case find_smallest(Right2) of
+                {error, _}   -> {error, Left2};
+                {Ok, Right3} -> {Ok, lft(Right3, Left2)}
+            end;
+        {K, V, nil, _} -> {{ok, K, V}, lft(Right, Left)};
+        {K, V}         -> {{ok, K, V}, lft(Right, Left)}
+    end.
+
 -spec to_list(tree()) -> [{key(),value()}].
 to_list(Tree) -> foldr(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree).
 
@@ -247,8 +273,8 @@ move_largest_node_to_front(Node) -> move_largest_node_to_front(Node, []).
 -spec move_largest_node_to_front(tree_node(), [tree_node()]) -> tree_node().
 move_largest_node_to_front(Node, Path) ->
     case rgt(Node) of
-        nil -> lft(Node, lists:foldl(fun rgt/2, lft(Node), Path));
-        Rgt -> move_largest_node_to_front(Rgt, [Node|Path])
+        nil -> splay(Node, Path);
+        Rgt -> move_largest_node_to_front(Rgt, [{rgt, Node}|Path])
     end.
 
 -spec move_smallest_node_to_front(maybe_tree_node()) -> maybe_tree_node().
@@ -258,8 +284,8 @@ move_smallest_node_to_front(Node) -> move_smallest_node_to_front(Node, []).
 -spec move_smallest_node_to_front(tree_node(), [tree_node()]) -> tree_node().
 move_smallest_node_to_front(Node, Path) ->
     case lft(Node) of
-        nil -> rgt(Node, lists:foldl(fun lft/2, rgt(Node), Path));
-        Lft -> move_smallest_node_to_front(Lft, [Node|Path])
+        nil -> splay(Node, Path);
+        Lft -> move_smallest_node_to_front(Lft, [{lft, Node}|Path])
     end.
 
 -spec path_to_node(key(), maybe_tree_node()) -> {maybe_tree_node(), [{direction(),tree_node()}]}.

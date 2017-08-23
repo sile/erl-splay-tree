@@ -66,6 +66,12 @@ find_largest_test_() ->
       fun () ->
               Empty = splay_tree:new(),
               ?assertEqual({error, Empty}, splay_tree:find_largest(Empty))
+      end},
+     {"find関数とは性能を除いて同じ挙動(木の形)となる",
+      fun () ->
+              T = splay_tree:from_list([{N, N} || N <- lists:seq(5, 1, -1)]),
+              ?assertEqual(element(2, splay_tree:find(5, T)),
+                           element(2, splay_tree:find_largest(T)))
       end}
     ].
 
@@ -80,6 +86,12 @@ find_smallest_test_() ->
       fun () ->
               Empty = splay_tree:new(),
               ?assertEqual({error, Empty}, splay_tree:find_smallest(Empty))
+      end},
+     {"find関数とは性能を除いて同じ挙動(木の形)となる",
+      fun () ->
+              T = splay_tree:from_list([{N, N} || N <- lists:seq(1, 5)]),
+              ?assertEqual(element(2, splay_tree:find(1, T)),
+                           element(2, splay_tree:find_smallest(T)))
       end}
     ].
 
@@ -304,5 +316,46 @@ split_test_() ->
               {TreeLeft, TreeRight} = splay_tree:split(2.5, Tree0),
               ?assertEqual([{1, a}, {2, b}], splay_tree:to_list(TreeLeft)),
               ?assertEqual([{3, c}], splay_tree:to_list(TreeRight))
+      end}
+    ].
+
+find_lower_bound_test_() ->
+    [
+     {"空のツリーが対象の場合",
+      fun () ->
+              Empty = splay_tree:new(),
+              ?assertEqual({error, Empty}, splay_tree:find_lower_bound(key, Empty))
+      end},
+     {"キーと等しいか、より大きな最初の要素を検索",
+      fun () ->
+              List = [{1, a}, {2, b}, {3, c}, {4, d}, {5, e}],
+              Tree0 = splay_tree:from_list(List),
+
+              {{ok, 1, a}, Tree1} = splay_tree:find_lower_bound(0, Tree0),
+              {{ok, 2, b}, Tree2} = splay_tree:find_lower_bound(2, Tree1),
+              {{ok, 3, c}, Tree3} = splay_tree:find_lower_bound(2.5, Tree2),
+              {error,      Tree4} = splay_tree:find_lower_bound(5.1, Tree3),
+              {{ok, 5, e},_Tree5} = splay_tree:find_lower_bound(4.9, Tree4)
+      end}
+    ].
+
+find_upper_bound_test_() ->
+    [
+     {"空のツリーが対象の場合",
+      fun () ->
+              Empty = splay_tree:new(),
+              ?assertEqual({error, Empty}, splay_tree:find_upper_bound(key, Empty))
+      end},
+     {"キーより大きな最初の要素を検索",
+      fun () ->
+              List = [{1, a}, {2, b}, {3, c}, {4, d}, {5, e}],
+              Tree0 = splay_tree:from_list(List),
+
+              {{ok, 1, a}, Tree1} = splay_tree:find_upper_bound(0, Tree0),
+              {{ok, 3, c}, Tree2} = splay_tree:find_upper_bound(2, Tree1),
+              {{ok, 3, c}, Tree3} = splay_tree:find_upper_bound(2.5, Tree2),
+              {error,      Tree4} = splay_tree:find_upper_bound(5.1, Tree3),
+              {error,      Tree5} = splay_tree:find_upper_bound(5,   Tree4),
+              {{ok, 5, e},_Tree6} = splay_tree:find_upper_bound(4.9, Tree5)
       end}
     ].

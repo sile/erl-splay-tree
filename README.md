@@ -6,7 +6,7 @@
 * 各要素は == で比較される (ex. 1 と 1.0 は等価)
 
 ## バージョン
-* 0.2.3
+* 0.2.6
 
 ## API
 #### splay_tree:new() -> Tree
@@ -57,6 +57,14 @@
 
     最小の要素を取り出す。
 
+#### splay_tree:find_lower_bound(Key, Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    Keyに等しいかより大きい最初の要素を返す.
+
+#### splay_tree:find_upper_bound(Key, Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    Keyより大きい最初の要素を返す.
+
 #### splay_tree:lookup(Key, Tree) -> {ok,Value} | error
 
     Keyに対応する要素の値を検索する。
@@ -71,8 +79,8 @@
 
 #### splay_tree:split(Key, Tree) -> {LeftTree, RightTree}
 
-    Keyで指定した位置で木を分割する。 
-    結果の LeftTree には Key より小さなキーを持つ要素が、  
+    Keyで指定した位置で木を分割する。
+    結果の LeftTree には Key より小さなキーを持つ要素が、
     RightTree には Key と等しいかより大きなキーを持つ要素が、格納される。
 
 #### splay_tree:from_list(KeyValueList) -> Tree
