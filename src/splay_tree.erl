@@ -10,6 +10,7 @@
 %%--------------------------------------------------------------------------------
 -export([new/0, store/3, find/2, find_largest/1, find_smallest/1,
          take_largest/1, take_smallest/1,
+         find_lower_bound/2, find_upper_bound/2,
          lookup/2, get_value/3, erase/2,
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
          keys/1, values/1,
@@ -142,6 +143,31 @@ split(BorderKey, Tree) ->
                 true  -> {rgt(Tree2, nil), rgt(Tree2)};
                 false -> {lft(Tree2), lft(Tree2, nil)}
             end
+    end.
+
+-spec find_lower_bound(key(), tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
+find_lower_bound(Key, Tree) ->
+    {Left, Right} = split(Key, Tree),
+    case Right of
+        nil            -> {error, Left};
+        {K, V, nil, _} -> {{ok, K, V}, lft(Right, Left)};
+        {K, V}         -> {{ok, K, V}, lft(Right, Left)}
+    end.
+
+-spec find_upper_bound(key(), tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
+find_upper_bound(Key, Tree) ->
+    {Left, Right} = split(Key, Tree),
+    case Right of
+        nil                       -> {error, Left};
+        {Key, Value}              -> {error, store(Key, Value, Left)};
+        {Key, Value, nil, Right2} ->
+            Left2 = store(Key, Value, Left),
+            case find_smallest(Right2) of
+                {error, _}   -> {error, Left2};
+                {Ok, Right3} -> {Ok, lft(Right3, Left2)}
+            end;
+        {K, V, nil, _} -> {{ok, K, V}, lft(Right, Left)};
+        {K, V}         -> {{ok, K, V}, lft(Right, Left)}
     end.
 
 -spec to_list(tree()) -> [{key(),value()}].

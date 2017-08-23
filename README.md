@@ -57,6 +57,14 @@
 
     最小の要素を取り出す。
 
+#### splay_tree:find_lower_bound(Key, Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    Keyに等しいかより大きい最初の要素を返す.
+
+#### splay_tree:find_upper_bound(Key, Tree) -> {{ok,Key,Value}, NewTree} | {error, NewTree}
+
+    Keyより大きい最初の要素を返す.
+
 #### splay_tree:lookup(Key, Tree) -> {ok,Value} | error
 
     Keyに対応する要素の値を検索する。
