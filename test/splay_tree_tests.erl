@@ -198,8 +198,7 @@ update3_test() ->
     Tree0 = splay_tree:from_list(entries()),
     ?assertEqual(error, splay_tree:update(scala, fun (_) -> 300 end, Tree0)),
 
-    Tree1 = splay_tree:update(lisp, fun (_) -> 300 end, Tree0),
-    ?assert(Tree1 =/= error),
+    {ok, Tree1} = splay_tree:update(lisp, fun (_) -> 300 end, Tree0),
     ?assertEqual({ok, 300}, splay_tree:lookup(lisp, Tree1)).
 
 filter_test() ->
