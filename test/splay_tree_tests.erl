@@ -1,4 +1,3 @@
-%% coding: latin-1
 -module(splay_tree_tests).
 
 -include_lib("eunit/include/eunit.hrl").
