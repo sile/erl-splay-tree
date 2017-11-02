@@ -1,6 +1,17 @@
 %% @copyright 2013 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc SplayTree
+%% @doc Splay Tree
+%%
+%% == Note ==
+%%
+%% The keys of the entries in a tree are compared using the `==' operator
+%% (e.g., `1' and `1.0' are regarded as the same keys).
+%%
+%% == References ==
+%%
+%% <ul>
+%%  <li>Splay tree(Wikiepdia): [https://en.wikipedia.org/wiki/Splay_tree]</li>
+%% </ul>
 -module(splay_tree).
 
 -compile(inline).
@@ -20,111 +31,326 @@
               update_fn/0, map_fn/0, fold_fn/0, fold_while_fn/0, pred_fn/0]).
 
 %%--------------------------------------------------------------------------------
-%% Types
+%% Exported Types
 %%--------------------------------------------------------------------------------
--type tree()             :: maybe_tree_node().
--type tree(_Key, _Vlaue) :: maybe_tree_node().
+-opaque tree() :: maybe_tree_node().
+%% A splay tree.
 
--type key()       :: any().
--type value()     :: any().
+-opaque tree(_Key, _Vlaue) :: maybe_tree_node().
+%% A splay tree.
+
+-type key() :: any().
+%% The key of an entry in a splay tree.
+%%
+%% == Note ==
+%%
+%% The keys are compared using the `==' operator
+%% (e.g., `1' and `1.0' are regarded as the same keys).
+
+-type value() :: any().
+%% The value of an entry in a splay tree.
+
 -type update_fn() :: fun((value()) -> value()).
--type map_fn()    :: fun((key(),value()) -> value()).
--type pred_fn()   :: fun((key(),value()) -> boolean()).
--type fold_fn()   :: fun((key(),value(),term()) -> term()).
--type fold_while_fn() :: fun ((key(), value(), term()) -> {boolean(), term()}).
+%% A function for updating the value of an entry in a splay tree.
 
+-type map_fn() :: fun((key(), value()) -> value()).
+%% A function for mapping a splay tree to another one.
+
+-type pred_fn() :: fun((key(), value()) -> boolean()).
+%% A predicate function that returns `true'
+%% if the input entry (key and value) satisfies the expected condition.
+
+-type fold_fn() :: fun((key(), value(), AccIn :: term()) -> AccOut :: term()).
+%% A function that folds the entries in a splay tree.
+
+-type fold_while_fn() :: fun ((key(), value(), AccIn :: term()) ->
+                                     {Continue :: boolean(), AccOut :: term()}).
+%% A function that folds the entries in a splay tree.
+%%
+%% If the value of `Continue' is `true', the folding will be broken and `AccOut' will be returned as the resulting value.
+
+%%--------------------------------------------------------------------------------
+%% Internal Types
+%%--------------------------------------------------------------------------------
 -type maybe_tree_node() :: tree_node() | nil.
 -type tree_node()       :: inner_node() | leaf_node().
 -type inner_node()      :: {key(), value(), maybe_tree_node(), maybe_tree_node()}.
 -type leaf_node()       :: {key(), value()}.
--type direction()       :: lft | rgt.
+-type direction()       :: lft | rgt. % left | right
 
 %%--------------------------------------------------------------------------------
 %% Exported Functions
 %%--------------------------------------------------------------------------------
+%% @doc Makes an empty tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:new().
+%% true = splay_tree:is_empty(Tree).
+%% '''
 -spec new() -> tree().
 new() -> nil.
 
+%% @doc Returns the number of entries in the tree.
+%%
+%% Note that this function takes `N' steps (where `N' is the number of entries).
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:new().
+%% 0 = splay_tree:size(Tree0).
+%%
+%% Tree1 = splay_tree:store(foo, bar, Tree1).
+%% 1 = splay_tree:size(Tree1).
+%% '''
 -spec size(tree()) -> non_neg_integer().
 size(Tree) -> foldl(fun (_, _, Count) -> Count+1 end, 0, Tree).
 
+%% @doc Returns `true' if the tree is empty, otherwise `false'.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:new().
+%% true = splay_tree:is_empty(Tree).
+%% '''
 -spec is_empty(tree()) -> boolean().
 is_empty(nil) -> true;
 is_empty(_)   -> false.
 
+%% @doc Stores the entry in `Tree'.
+%%
+%% If there is an entry whose key is equal to `Key', its value will be replaced by `Value'.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:new().
+%% Tree1 = splay_tree:store(foo, bar, Tree0).
+%% Tree2 = splay_tree:store(111, 222, Tree1).
+%%
+%% [{111, 222}, {foo, bar}] = splay_tree:to_list(Tree2).
+%% '''
 -spec store(key(), value(), tree()) -> tree().
-store(Key, Value, Root) ->
-    case path_to_node(Key, Root) of
+store(Key, Value, Tree) ->
+    case path_to_node(Key, Tree) of
         {nil,  Path} -> splay(leaf(Key,Value), Path);
         {Node, Path} -> splay(val(Node,Value), Path)
     end.
 
+%% @doc Updates the value of an entry in the tree.
+%%
+%% If there is an entry whose key is equal to `Key',
+%% its value will be updated to `Fun(Key, CurrentValue)'.
+%% Otherwise a new entry whose value is `Initial' will be inserted to the tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{foo, bar}]).
+%%
+%% %% `foo' exists.
+%% Tree1 = splay_tree:update(foo, fun (bar) -> baz end, qux, Tree0).
+%% {{ok, baz}, _} = splay_tree:find(foo, Tree1).
+%%
+%% %% `111' does not exist.
+%% Tree2 = splay_tree:update(111, fun (_) -> 222 end, 333, Tree1).
+%% {{ok, 333}, _} = splay_tree:find(111, Tree2).
+%% '''
 -spec update(key(), update_fn(), value(), tree()) -> tree().
-update(Key, Fun, Initial, Root) ->
-    case path_to_node(Key, Root) of
+update(Key, Fun, Initial, Tree) ->
+    case path_to_node(Key, Tree) of
         {nil,  Path} -> splay(leaf(Key,Initial), Path);
         {Node, Path} -> splay(val(Node,Fun(val(Node))), Path)
     end.
 
--spec update(key(), update_fn(), tree()) -> tree()|error.
-update(Key, Fun, Root) ->
-    case path_to_node(Key, Root) of
+%% @doc Updates the value of an entry in the tree.
+%%
+%% If there is an entry whose key is equal to `Key',
+%% its value will be updated to `Fun(Key, CurrentValue)'.
+%% Otherwise this function will return `error'.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{foo, bar}]).
+%%
+%% %% `foo' exists.
+%% {ok, Tree1} = splay_tree:update(foo, fun (bar) -> baz end, Tree0).
+%% {{ok, baz}, _} = splay_tree:find(foo, Tree1).
+%%
+%% %% `111' does not exist.
+%% error = splay_tree:update(111, fun (_) -> 222 end, Tree1).
+%% '''
+-spec update(key(), update_fn(), tree()) -> {ok, tree()} | error.
+update(Key, Fun, Tree) ->
+    case path_to_node(Key, Tree) of
         {nil, _Path} -> error;
-        {Node, Path} -> splay(val(Node,Fun(val(Node))), Path)
+        {Node, Path} -> {ok, splay(val(Node,Fun(val(Node))), Path)}
     end.
 
--spec find(key(), tree()) -> {error,tree()} | {{ok,value()},tree()}.
-find(Key, Root) ->
-    case path_to_node(Key,Root) of
+%% @doc Finds the value of the entry whose key is equal to `Key' in the tree.
+%%
+%% Because splay tree is an amortized data structure,
+%% this function partially rebalance `Tree' and returns the updated tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{foo, bar}]).
+%%
+%% {{ok, bar}, _} = splay_tree:find(foo, Tree).
+%% {error, _} = splay_tree:find(baz, Tree).
+%% '''
+-spec find(key(), tree()) -> {error, tree()} | {{ok, value()}, tree()}.
+find(Key, Tree) ->
+    case path_to_node(Key, Tree) of
         {nil,  Path} -> {error,              splay(Path)};
         {Node, Path} -> {{ok,val(Node)}, splay(Node,Path)}
     end.
 
--spec find_largest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+%% @doc Finds the entry which has the largest key in the tree.
+%%
+%% If `Tree' is empty, `{error, Tree}' will be returned.
+%%
+%% Because splay tree is an amortized data structure,
+%% this function partially rebalance `Tree' and returns the updated tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{333, 444}, {111, 222}]).
+%% {{ok, 333, 444}, _} = splay_tree:find_largest(Tree).
+%% '''
+-spec find_largest(tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
 find_largest(Tree) ->
     case move_largest_node_to_front(Tree) of
         nil  -> {error, nil};
         Node -> {{ok, key(Node), val(Node)}, Node}
     end.
 
--spec find_smallest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+%% @doc Finds the entry which has the smallest key in the tree.
+%%
+%% If `Tree' is empty, `{error, Tree}' will be returned.
+%%
+%% Because splay tree is an amortized data structure,
+%% this function partially rebalance `Tree' and returns the updated tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{333, 444}, {111, 222}]).
+%% {{ok, 111, 222}, _} = splay_tree:find_smallest(Tree).
+%% '''
+-spec find_smallest(tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
 find_smallest(Tree) ->
     case move_smallest_node_to_front(Tree) of
         nil  -> {error, nil};
         Node -> {{ok, key(Node), val(Node)}, Node}
     end.
 
--spec take_largest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+%% @doc Takes the entry which has the largest key out from the tree.
+%%
+%% If `Tree' is empty, `{error, Tree}' will be returned.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{333, 444}, {111, 222}]).
+%% {{ok, 333, 444}, Tree1} = splay_tree:take_largest(Tree0).
+%% {{ok, 111, 222}, Tree2} = splay_tree:take_largest(Tree1).
+%% {error,          Tree2} = splay_tree:take_largest(Tree2).
+%% '''
+-spec take_largest(tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
 take_largest(Tree) ->
     case move_largest_node_to_front(Tree) of
         nil  -> {error, nil};
         Node -> {{ok, key(Node), val(Node)}, lft(Node)}
     end.
 
--spec take_smallest(tree()) -> {error, tree()} | {{ok,key(),value()},tree()}.
+%% @doc Takes the entry which has the smallest key out from the tree.
+%%
+%% If `Tree' is empty, `{error, Tree}' will be returned.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{333, 444}, {111, 222}]).
+%% {{ok, 111, 222}, Tree1} = splay_tree:take_smallest(Tree0).
+%% {{ok, 333, 444}, Tree2} = splay_tree:take_smallest(Tree1).
+%% {error,          Tree2} = splay_tree:take_smallest(Tree2).
+%% '''
+-spec take_smallest(tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
 take_smallest(Tree) ->
     case move_smallest_node_to_front(Tree) of
         nil  -> {error, nil};
         Node -> {{ok, key(Node), val(Node)}, rgt(Node)}
     end.
 
--spec lookup(key(), tree()) -> error | {ok,value()}.
-lookup(Key, Root) ->
-    case lookup_node(Key,Root) of
+%% @doc Lookups the value of the entry whose key is equal to `Key' in the tree.
+%%
+%% == Caution ==
+%%
+%% Unlike {@link find/2}, this function does not rebalance `Tree'.
+%% So use of this function may cause performance degradation.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{foo, bar}]).
+%%
+%% {ok, bar} = splay_tree:lookup(foo, Tree).
+%% error = splay_tree:lookup(baz, Tree).
+%% '''
+-spec lookup(key(), tree()) -> error | {ok, value()}.
+lookup(Key, Tree) ->
+    case lookup_node(Key, Tree) of
         nil  -> error;
         Node -> {ok, val(Node)}
     end.
 
+%% @doc Gets the value of the entry whose key is equal to `Key' in the tree.
+%%
+%% If there is no entry which has the key,
+%% this function will return `DefaultValue' instead.
+%%
+%% == Caution ==
+%%
+%% Unlike {@link find/2}, this function does not rebalance `Tree'.
+%% So use of this function may cause performance degradation.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{foo, bar}]).
+%%
+%% bar = splay_tree:get_value(foo, Tree, qux).
+%% qux = splay_tree:get_value(baz, Tree, qux).
+%% '''
 -spec get_value(key(), tree(), value()) -> value().
-get_value(Key, Root, DefaultValue) ->
-    case lookup_node(Key,Root) of
+get_value(Key, Tree, DefaultValue) ->
+    case lookup_node(Key, Tree) of
         nil  -> DefaultValue;
         Node -> val(Node)
     end.
 
+%% @doc Erases the entry whose key is equal to `Key' from the tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{foo, bar}]).
+%%
+%% Tree1 = splay_tree:erase(foo, Tree0).
+%% error = splay_tree:lookup(foo, Tree1).
+%%
+%% Tree1 = splay_tree:erase(foo, Tree1).
+%% '''
 -spec erase(key(), tree()) -> tree().
-erase(Key, Root) ->
-    case path_to_node(Key, Root) of
+erase(Key, Tree) ->
+    case path_to_node(Key, Tree) of
         {nil,  Path} -> splay(Path);
         {Node,   []} -> pop_front(Node);
         {Node, Path} -> case {pop_front(Node), hd(Path)} of
