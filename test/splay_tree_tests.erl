@@ -261,11 +261,9 @@ map_test() ->
     ?assertEqual(Expected, splay_tree:to_list(Tree)).
 
 large_entries_test() ->
-    random:seed(0, 0, 0),
-
     Entries = dict:to_list(
                 dict:from_list(
-                  [{random:uniform(), N} || N <- lists:seq(1, 10000)])),
+                  [{rand:uniform(), N} || N <- lists:seq(1, 10000)])),
 
     Tree = splay_tree:from_list(Entries),
 
