@@ -359,7 +359,21 @@ erase(Key, Tree) ->
                         end
     end.
 
--spec split(key(), tree()) -> {tree(), tree()}.
+%% @doc Splits `Tree' at the position specified by `BorderKey'.
+%%
+%% `LeftTree' contains the entries whose key is smaller than `BorderKey'.
+%% `RightTree' contains the entries whose key is equal to or greater than `BorderKey'.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{1, a}, {2, b}, {3, c}]).
+%% {Left, Right} = splay_tree:split(2, Tree).
+%%
+%% [1] = splay_tree:keys(Left).
+%% [2, 3] = splay_tree:keys(Right).
+%% '''
+-spec split(key(), tree()) -> {LeftTree :: tree(), RightTree :: tree()}.
 split(BorderKey, Tree) ->
     {_, Tree2} = find(BorderKey, Tree),
     case Tree2 of
@@ -371,6 +385,19 @@ split(BorderKey, Tree) ->
             end
     end.
 
+%% @doc Finds the smallest entry among those whose key is equal to or greater than `Key'.
+%%
+%% Because splay tree is an amortized data structure,
+%% this function partially rebalance `Tree' and returns the updated tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{1, a}, {2, b}, {3, c}]).
+%% {{ok, 2, b}, _} = splay_tree:find_lower_bound(2, Tree).
+%% {{ok, 3, c}, _} = splay_tree:find_lower_bound(2.5, Tree).
+%% {error, _}      = splay_tree:find_lower_bound(3.1, Tree).
+%% '''
 -spec find_lower_bound(key(), tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
 find_lower_bound(Key, Tree) ->
     {Left, Right} = split(Key, Tree),
@@ -380,6 +407,19 @@ find_lower_bound(Key, Tree) ->
         {K, V}         -> {{ok, K, V}, lft(Right, Left)}
     end.
 
+%% @doc Finds the smallest entry among those whose key is greater than `Key'.
+%%
+%% Because splay tree is an amortized data structure,
+%% this function partially rebalance `Tree' and returns the updated tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{1, a}, {2, b}, {3, c}]).
+%% {{ok, 3, c}, _} = splay_tree:find_upper_bound(2, Tree).
+%% {{ok, 3, c}, _} = splay_tree:find_upper_bound(2.5, Tree).
+%% {error, _}      = splay_tree:find_upper_bound(3.1, Tree).
+%% '''
 -spec find_upper_bound(key(), tree()) -> {error, tree()} | {{ok, key(), value()}, tree()}.
 find_upper_bound(Key, Tree) ->
     {Left, Right} = split(Key, Tree),
@@ -396,43 +436,137 @@ find_upper_bound(Key, Tree) ->
         {K, V}         -> {{ok, K, V}, lft(Right, Left)}
     end.
 
--spec to_list(tree()) -> [{key(),value()}].
+%% @doc Converts `Tree` to an associated list.
+%%
+%% The resulting list is ordered by the key of the entries.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{2, b}, {3, c}, {1, a}]).
+%% [{1, a}, {2, b}, {3, c}] = splay_tree:to_list(Tree).
+%% '''
+-spec to_list(tree()) -> [{key(), value()}].
 to_list(Tree) -> foldr(fun (K, V, Acc) -> [{K,V}|Acc] end, [], Tree).
 
+%% @doc Returns the keys of the entries in `Tree'.
+%%
+%% The resulting list is in ascending order.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{2, b}, {3, c}, {1, a}]).
+%% [1, 2, 3] = splay_tree:keys(Tree).
+%% '''
 -spec keys(tree()) -> [key()].
 keys(Tree) -> foldr(fun (K, _, Acc) -> [K|Acc] end, [], Tree).
 
+%% @doc Returns the values of the entries in `Tree'.
+%%
+%% The resulting values are ordered by the associated keys.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{2, a}, {3, b}, {1, c}]).
+%% [c, a, b] = splay_tree:values(Tree).
+%% '''
 -spec values(tree()) -> [value()].
 values(Tree) -> foldr(fun (_, V, Acc) -> [V|Acc] end, [], Tree).
 
--spec from_list([{key(),value()}]) -> tree().
+%% @doc Makes a splay tree from the given associated list.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{2, b}, {1, a}]).
+%% {{ok, a}, _} = splay_tree:find(1, Tree).
+%% '''
+-spec from_list([{key(), value()}]) -> tree().
 from_list(List) -> lists:foldl(fun ({K, V}, Tree) -> store(K, V, Tree) end, new(), List).
 
+%% @doc Maps `Tree' to another splay tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{1, 2}, {3, 4}]).
+%% Tree1 = splay_tree:map(fun (K, V) -> K + V end, Tree0).
+%% [{1, 3}, {3, 7}] = splay_tree:to_list(Tree1).
+%% '''
 -spec map(map_fn(), tree()) -> tree().
 map(Fun, Tree) -> map_node(Fun, Tree).
 
--spec foldl(fold_fn(), term(), tree()) -> term().
-foldl(Fun, Acc0, Tree) -> foldl_node(Fun, Tree, Acc0).
+%% @doc Folds the entries in `Tree' by ascending order.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{a, 1}, {b, 2}]).
+%% [2, 1] = splay_tree:foldl(fun (_, V, Acc) -> [V | Acc] end, [], Tree).
+%% '''
+-spec foldl(fold_fn(), term(), tree()) -> Result :: term().
+foldl(Fun, Initial, Tree) -> foldl_node(Fun, Tree, Initial).
 
--spec foldr(fold_fn(), term(), tree()) -> term().
-foldr(Fun, Acc0, Tree) -> foldr_node(Fun, Tree, Acc0).
+%% @doc Folds the entries in `Tree' by descending order.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{a, 1}, {b, 2}]).
+%% [1, 2] = splay_tree:foldr(fun (_, V, Acc) -> [V | Acc] end, [], Tree).
+%% '''
+-spec foldr(fold_fn(), term(), tree()) -> Result :: term().
+foldr(Fun, Initial, Tree) -> foldr_node(Fun, Tree, Initial).
 
--spec foldl_while(fold_while_fn(), term(), tree()) -> term().
-foldl_while(Fun, Acc0, Tree) ->
+%% @doc Folds the entries in `Tree' by ascending order.
+%%
+%% If `Fun' returns `{false, Result}', the folding will be broken immediately and
+%% `Result` will be returned as the resulting value.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{a, 1}, {b, 2}]).
+%% [1] = splay_tree:foldl_while(fun (_, V, Acc) -> {false, [V | Acc]} end, [], Tree).
+%% '''
+-spec foldl_while(fold_while_fn(), term(), tree()) -> Result :: term().
+foldl_while(Fun, Initial, Tree) ->
     try
-        foldl_while_node(Fun, Tree, Acc0)
+        foldl_while_node(Fun, Tree, Initial)
     catch
         throw:{?MODULE, break, AccFinal} -> AccFinal
     end.
 
+%% @doc Folds the entries in `Tree' by descending order.
+%%
+%% If `Fun' returns `{false, Result}', the folding will be broken immediately and
+%% `Result` will be returned as the resulting value.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{a, 1}, {b, 2}]).
+%% [2] = splay_tree:foldr_while(fun (_, V, Acc) -> {false, [V | Acc]} end, [], Tree).
+%% '''
 -spec foldr_while(fold_while_fn(), term(), tree()) -> term().
-foldr_while(Fun, Acc0, Tree) ->
+foldr_while(Fun, Initial, Tree) ->
     try
-        foldr_while_node(Fun, Tree, Acc0)
+        foldr_while_node(Fun, Tree, Initial)
     catch
         throw:{?MODULE, break, AccFinal} -> AccFinal
     end.
 
+%% @doc Makes a splay tree that contains entries in `Tree' for which the invocation of `Pred' returns `true'.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{aaa, bbb}, {111, 222}]).
+%% Tree1 = splay_tree:filter(fun (K, _) -> is_atom(K) end, Tree0).
+%% [{aaa, bbb}] = splay_tree:to_list(Tree1).
+%% '''
 -spec filter(pred_fn(), tree()) -> tree().
 filter(Pred, Tree) ->
     foldl(fun (Key, Value, AccTree) ->
