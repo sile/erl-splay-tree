@@ -36,7 +36,7 @@
 -opaque tree() :: maybe_tree_node().
 %% A splay tree.
 
--opaque tree(_Key, _Vlaue) :: maybe_tree_node().
+-type tree(_Key, _Value) :: tree().
 %% A splay tree.
 
 -type key() :: any().
