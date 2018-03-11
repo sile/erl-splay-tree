@@ -1,12 +1,10 @@
-{application, splay_tree,
- [
-  {description, "A splay-tree implementation"},
-  {vsn, "0.2.6"},
-  {registered, []},
-  {modules, [splay_tree]},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
-  {env, []}
- ]}.
+{application,splay_tree,
+             [{description,"A splay-tree implementation"},
+              {vsn,"1.0.1"},
+              {registered,[]},
+              {modules,[]},
+              {applications,[kernel,stdlib]},
+              {env,[]},
+              {maintainers,["Takeru Ohta"]},
+              {licenses,["MIT"]},
+              {links,[{"GitHub","https://github.com/sile/erl-splay-tree"}]}]}.

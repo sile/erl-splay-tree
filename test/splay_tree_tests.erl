@@ -1,4 +1,3 @@
-%% coding: latin-1
 -module(splay_tree_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -199,8 +198,7 @@ update3_test() ->
     Tree0 = splay_tree:from_list(entries()),
     ?assertEqual(error, splay_tree:update(scala, fun (_) -> 300 end, Tree0)),
 
-    Tree1 = splay_tree:update(lisp, fun (_) -> 300 end, Tree0),
-    ?assert(Tree1 =/= error),
+    {ok, Tree1} = splay_tree:update(lisp, fun (_) -> 300 end, Tree0),
     ?assertEqual({ok, 300}, splay_tree:lookup(lisp, Tree1)).
 
 filter_test() ->
@@ -263,11 +261,9 @@ map_test() ->
     ?assertEqual(Expected, splay_tree:to_list(Tree)).
 
 large_entries_test() ->
-    random:seed(0, 0, 0),
-
     Entries = dict:to_list(
                 dict:from_list(
-                  [{random:uniform(), N} || N <- lists:seq(1, 10000)])),
+                  [{rand:uniform(), N} || N <- lists:seq(1, 10000)])),
 
     Tree = splay_tree:from_list(Entries),
 
