@@ -15,6 +15,7 @@
 -module(splay_tree).
 
 -compile(inline).
+-compile([{no_auto_import, size/1}]).
 
 %%--------------------------------------------------------------------------------
 %% Exported API
@@ -26,6 +27,8 @@
          size/1, is_empty/1, update/4, update/3, filter/2, map/2,
          keys/1, values/1,
          foldl/3, foldr/3, foldl_while/3, foldr_while/3, from_list/1, to_list/1, split/2]).
+
+-export([index/2, at/2]).
 
 -export_type([tree/0, tree/2, key/0, value/0,
               update_fn/0, map_fn/0, fold_fn/0, fold_while_fn/0, pred_fn/0]).
@@ -72,9 +75,12 @@
 %%--------------------------------------------------------------------------------
 %% Internal Types
 %%--------------------------------------------------------------------------------
+-type size()            :: non_neg_integer().
+-type index()           :: pos_integer().
+
 -type maybe_tree_node() :: tree_node() | nil.
 -type tree_node()       :: inner_node() | leaf_node().
--type inner_node()      :: {key(), value(), maybe_tree_node(), maybe_tree_node()}.
+-type inner_node()      :: {key(), value(), maybe_tree_node(), maybe_tree_node(), size()}.
 -type leaf_node()       :: {key(), value()}.
 -type direction()       :: lft | rgt. % left | right
 
@@ -94,8 +100,6 @@ new() -> nil.
 
 %% @doc Returns the number of entries in the tree.
 %%
-%% Note that this function takes `N' steps (where `N' is the number of entries).
-%%
 %% == Example ==
 %%
 %% ```
@@ -106,7 +110,9 @@ new() -> nil.
 %% 1 = splay_tree:size(Tree1).
 %% '''
 -spec size(tree()) -> non_neg_integer().
-size(Tree) -> foldl(fun (_, _, Count) -> Count+1 end, 0, Tree).
+size(nil) -> 0;
+size({_,_}) -> 1;
+size({_, _, _, _, Size}) -> Size.
 
 %% @doc Returns `true' if the tree is empty, otherwise `false'.
 %%
@@ -403,7 +409,7 @@ find_lower_bound(Key, Tree) ->
     {Left, Right} = split(Key, Tree),
     case Right of
         nil            -> {error, Left};
-        {K, V, nil, _} -> {{ok, K, V}, lft(Right, Left)};
+        {K, V, nil, _, _} -> {{ok, K, V}, lft(Right, Left)};
         {K, V}         -> {{ok, K, V}, lft(Right, Left)}
     end.
 
@@ -426,13 +432,13 @@ find_upper_bound(Key, Tree) ->
     case Right of
         nil                       -> {error, Left};
         {Key, Value}              -> {error, store(Key, Value, Left)};
-        {Key, Value, nil, Right2} ->
+        {Key, Value, nil, Right2, _} ->
             Left2 = store(Key, Value, Left),
             case find_smallest(Right2) of
                 {error, _}   -> {error, Left2};
                 {Ok, Right3} -> {Ok, lft(Right3, Left2)}
             end;
-        {K, V, nil, _} -> {{ok, K, V}, lft(Right, Left)};
+        {K, V, nil, _, _} -> {{ok, K, V}, lft(Right, Left)};
         {K, V}         -> {{ok, K, V}, lft(Right, Left)}
     end.
 
@@ -578,6 +584,48 @@ filter(Pred, Tree) ->
           new(),
           Tree).
 
+%% @doc Finds the index of the entry whose key is equal to `Key' in the tree.
+%% The index of the entry is its position in ordered list of all tree entries.
+%%
+%% Because splay tree is an amortized data structure,
+%% this function partially rebalance `Tree' and returns the updated tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{a, p}, {b, q}, {c, r}, {d, s}, {e, t} ]).
+%%
+%% {{ok, 4}, _} = splay_tree:index(d, Tree).
+%% {error, _} = splay_tree:index(baz, Tree).
+%% '''
+-spec index(key(), tree()) -> {{ok, index()}, tree()} | {error, tree()}.
+index(Key, Tree) ->
+    case find(Key, Tree) of
+        {error, _} = Error -> Error;
+        {{ok, _}, Tree2} -> {{ok, node_index(Tree2)}, Tree2}
+    end.
+
+%% @doc Finds the entry with given index in the tree.
+%% The index of the entry is its position in ordered list of all tree entries.
+%%
+%% Because splay tree is an amortized data structure,
+%% this function partially rebalance `Tree' and returns the updated tree.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree = splay_tree:from_list([{a, p}, {b, q}, {c, r}, {d, s}, {e, t} ]).
+%%
+%% {{ok, c, r}, _} = splay_tree:at(3, Tree).
+%% {error, _} = splay_tree:at(baz, Tree).
+%% '''
+-spec at(index(), tree()) -> {{ok, key(), value()}, tree()} | {error, tree()}.
+at(Index, Tree) ->
+    case path_to_index(Index, Tree) of
+        {nil,  Path} -> {error, splay(Path)};
+        {Node, Path} -> {{ok, key(Node), val(Node)}, splay(Node, Path)}
+    end.
+
 %%--------------------------------------------------------------------------------
 %% Internal Functions
 %%--------------------------------------------------------------------------------
@@ -591,30 +639,30 @@ val(Node) -> element(2, Node).
 val(Node, Value) -> setelement(2, Node, Value).
 
 -spec lft(tree_node()) -> maybe_tree_node().
-lft({_, _, Lft, _}) -> Lft;
+lft({_, _, Lft, _, _}) -> Lft;
 lft({_, _})         -> nil.
 
 -spec lft(tree_node(), maybe_tree_node()) -> tree_node().
-lft({Key, Val, _, nil}, nil) -> {Key, Val};
-lft({Key, Val, _, Rgt}, Lft) -> {Key, Val, Lft, Rgt};
+lft({Key, Val, _, nil, _}, nil) -> {Key, Val};
+lft({Key, Val, _, Rgt, _}, Lft) -> {Key, Val, Lft, Rgt, size(Lft) + size(Rgt) + 1};
 lft({Key, Val}, nil)         -> {Key, Val};
-lft({Key, Val}, Lft)         -> {Key, Val, Lft, nil}.
+lft({Key, Val}, Lft)         -> {Key, Val, Lft, nil, size(Lft) + 1}.
 
 -spec rgt(tree_node()) -> maybe_tree_node().
-rgt({_, _, _, Rgt}) -> Rgt;
+rgt({_, _, _, Rgt, _}) -> Rgt;
 rgt({_, _})         -> nil.
 
 -spec rgt(tree_node(), maybe_tree_node()) -> tree_node().
 rgt({Key, Val, nil, _}, nil) -> {Key, Val};
-rgt({Key, Val, Lft, _}, Rgt) -> {Key, Val, Lft, Rgt};
+rgt({Key, Val, Lft, _, _}, Rgt) -> {Key, Val, Lft, Rgt, size(Lft) + size(Rgt) + 1};
 rgt({Key, Val}, nil)         -> {Key, Val};
-rgt({Key, Val}, Rgt)         -> {Key, Val, nil, Rgt}.
+rgt({Key, Val}, Rgt)         -> {Key, Val, nil, Rgt, size(Rgt) + 1}.
 
 -spec lft_rgt(tree_node(), maybe_tree_node(), maybe_tree_node()) -> tree_node().
-lft_rgt(Node, Lft, Rgt) -> {key(Node), val(Node), Lft, Rgt}.
+lft_rgt(Node, Lft, Rgt) -> {key(Node), val(Node), Lft, Rgt, size(Lft) + size(Rgt) + 1}.
 
 -spec rgt_lft(tree_node(), maybe_tree_node(), maybe_tree_node()) -> tree_node().
-rgt_lft(Node, Rgt, Lft) -> {key(Node), val(Node), Lft, Rgt}.
+rgt_lft(Node, Rgt, Lft) -> {key(Node), val(Node), Lft, Rgt, size(Lft) + size(Rgt) + 1}.
 
 -spec leaf(key(), value()) -> tree_node().
 leaf(Key, Value) -> {Key, Value}.
@@ -698,17 +746,17 @@ splay(X, [{Dir,P}, {_,G} | Path]) ->   % zig-zag
 -spec map_node(map_fn(), maybe_tree_node()) -> maybe_tree_node().
 map_node(_Fun, nil)                 -> nil;
 map_node(Fun, {Key, Val})           -> {Key, Fun(Key, Val)};
-map_node(Fun, {Key, Val, Lft, Rgt}) -> {Key, Fun(Key, Val), map_node(Fun, Lft), map_node(Fun, Rgt)}.
+map_node(Fun, {Key, Val, Lft, Rgt, Size}) -> {Key, Fun(Key, Val), map_node(Fun, Lft), map_node(Fun, Rgt), Size}.
 
 -spec foldl_node(fold_fn(), maybe_tree_node(), term()) -> term().
 foldl_node(_Fun, nil, Acc)                 -> Acc;
 foldl_node(Fun, {Key, Val}, Acc)           -> Fun(Key, Val, Acc);
-foldl_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldl_node(Fun, Rgt, Fun(Key, Val, foldl_node(Fun, Lft, Acc))).
+foldl_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldl_node(Fun, Rgt, Fun(Key, Val, foldl_node(Fun, Lft, Acc))).
 
 -spec foldr_node(fold_fn(), maybe_tree_node(), term()) -> term().
 foldr_node(_Fun, nil, Acc)                 -> Acc;
 foldr_node(Fun, {Key, Val}, Acc)           -> Fun(Key, Val, Acc);
-foldr_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldr_node(Fun, Lft, Fun(Key, Val, foldr_node(Fun, Rgt, Acc))).
+foldr_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldr_node(Fun, Lft, Fun(Key, Val, foldr_node(Fun, Rgt, Acc))).
 
 -define(MAYBE_BREAK(Result),
         case Result of
@@ -719,9 +767,27 @@ foldr_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldr_node(Fun, Lft, Fun(Key, Val,
 -spec foldl_while_node(fold_while_fn(), maybe_tree_node(), term()) -> term().
 foldl_while_node(_Fun, nil, Acc)                 -> Acc;
 foldl_while_node(Fun, {Key, Val}, Acc)           -> ?MAYBE_BREAK(Fun(Key, Val, Acc));
-foldl_while_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldl_while_node(Fun, Rgt, ?MAYBE_BREAK(Fun(Key, Val, foldl_while_node(Fun, Lft, Acc)))).
+foldl_while_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldl_while_node(Fun, Rgt, ?MAYBE_BREAK(Fun(Key, Val, foldl_while_node(Fun, Lft, Acc)))).
 
 -spec foldr_while_node(fold_while_fn(), maybe_tree_node(), term()) -> term().
 foldr_while_node(_Fun, nil, Acc)                 -> Acc;
 foldr_while_node(Fun, {Key, Val}, Acc)           -> ?MAYBE_BREAK(Fun(Key, Val, Acc));
-foldr_while_node(Fun, {Key, Val, Lft, Rgt}, Acc) -> foldr_while_node(Fun, Lft, ?MAYBE_BREAK(Fun(Key, Val, foldr_while_node(Fun, Rgt, Acc)))).
+foldr_while_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldr_while_node(Fun, Lft, ?MAYBE_BREAK(Fun(Key, Val, foldr_while_node(Fun, Rgt, Acc)))).
+
+-spec node_index(tree_node()) -> index().
+node_index(Node) -> 1 + size(lft(Node)).
+
+-spec path_to_index(index(), maybe_tree_node()) -> {maybe_tree_node(), [{direction(),tree_node()}]}.
+path_to_index(Index, Root) ->
+    path_to_index(Index, Root, []).
+
+-spec path_to_index(index(), maybe_tree_node(), [{direction(),tree_node()}]) ->
+    {maybe_tree_node(), [{direction(),tree_node()}]}.
+path_to_index(_Index, nil, Path) -> {nil, Path};
+path_to_index(Index, Node, Path) ->
+    case size(lft(Node)) of
+        I when Index =< I -> path_to_index(Index, lft(Node), [{lft,Node}|Path]);
+        I when Index > I + 1 -> path_to_index(Index - I - 1, rgt(Node), [{rgt,Node}|Path]);
+        _              -> {Node, Path}
+    end.
+

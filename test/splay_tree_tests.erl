@@ -355,3 +355,17 @@ find_upper_bound_test_() ->
               {{ok, 5, e},_Tree6} = splay_tree:find_upper_bound(4.9, Tree5)
       end}
     ].
+
+index_test() ->
+    ShuffledList = [I || {_,I} <- lists:sort([{rand:uniform(),K} || K <- lists:seq(1,100)])],
+    Entries = [{I/2.0, I} || I <- ShuffledList],
+    Tree0 = splay_tree:from_list(Entries),
+
+    {{ok, 30},  Tree1} = splay_tree:index(15.0,   Tree0),
+    {{ok, 49},  Tree2} = splay_tree:index(24.5, Tree1),
+    {error,     Tree3} = splay_tree:index(51.0,   Tree2),
+
+    {{ok,15.5, 31},  Tree4} = splay_tree:at(31,  Tree3),
+    {{ok,50.0, 100}, Tree5} = splay_tree:at(100, Tree4),
+    {error,         _Tree6} = splay_tree:at(101, Tree5).
+
