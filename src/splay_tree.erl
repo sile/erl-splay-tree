@@ -653,7 +653,7 @@ rgt({_, _, _, Rgt, _}) -> Rgt;
 rgt({_, _})         -> nil.
 
 -spec rgt(tree_node(), maybe_tree_node()) -> tree_node().
-rgt({Key, Val, nil, _}, nil) -> {Key, Val};
+rgt({Key, Val, nil, _, _}, nil) -> {Key, Val};
 rgt({Key, Val, Lft, _, _}, Rgt) -> {Key, Val, Lft, Rgt, size(Lft) + size(Rgt) + 1};
 rgt({Key, Val}, nil)         -> {Key, Val};
 rgt({Key, Val}, Rgt)         -> {Key, Val, nil, Rgt, size(Rgt) + 1}.
