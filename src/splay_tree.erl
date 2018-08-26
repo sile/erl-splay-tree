@@ -104,12 +104,24 @@ new() -> nil.
 %% Tree0 = splay_tree:new().
 %% 0 = splay_tree:size(Tree0).
 %%
-%% Tree1 = splay_tree:store(foo, bar, Tree1).
+%% Tree1 = splay_tree:store(foo, bar, Tree0).
 %% 1 = splay_tree:size(Tree1).
 %% '''
 -spec size(tree()) -> non_neg_integer().
 size(Tree) -> {Size, _} = update_size(Tree), Size.
 
+%% @doc Returns the number of entries in the tree, and updated tree optimised for the size query.
+%% If you are using size/1 function frequently in your code
+%% it is better to use update_size/1 instead as consecutive calls
+%% to this function are match faster.
+%%
+%% == Example ==
+%%
+%% ```
+%% Tree0 = splay_tree:from_list([{a,1},{b,2},{c,3}]).
+%% {3, Tree1} = splay_tree:update_size(Tree0).
+%% {3, Tree1} = splay_tree:update_size(Tree1).
+%% '''
 -spec update_size(tree()) -> {size(), tree()}.
 update_size(nil) -> {0, nil};
 update_size({_, _, _, _, Size} = Node) when Size >= 0 -> {Size, Node};
