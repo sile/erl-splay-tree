@@ -369,3 +369,9 @@ index_test() ->
     {{ok,50.0, 100}, Tree5} = splay_tree:at(100, Tree4),
     {error,         _Tree6} = splay_tree:at(101, Tree5).
 
+update_size_test() ->
+    List = [{1, a}, {2, b}, {3, c}, {4, d}, {5, e}],
+    Tree0 = splay_tree:from_list(List),
+    5 = splay_tree:size(Tree0),
+    {5, Tree1} = splay_tree:update_size(Tree0),
+    {5, Tree1} = splay_tree:update_size(Tree1).
