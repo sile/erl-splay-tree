@@ -756,17 +756,14 @@ splay(X, [{Dir,P}, {_,G} | Path]) ->   % zig-zag
 
 -spec map_node(map_fn(), maybe_tree_node()) -> maybe_tree_node().
 map_node(_Fun, nil)                 -> nil;
-map_node(Fun, {Key, Val})           -> {Key, Fun(Key, Val)};
 map_node(Fun, {Key, Val, Lft, Rgt, Size}) -> {Key, Fun(Key, Val), map_node(Fun, Lft), map_node(Fun, Rgt), Size}.
 
 -spec foldl_node(fold_fn(), maybe_tree_node(), term()) -> term().
 foldl_node(_Fun, nil, Acc)                 -> Acc;
-foldl_node(Fun, {Key, Val}, Acc)           -> Fun(Key, Val, Acc);
 foldl_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldl_node(Fun, Rgt, Fun(Key, Val, foldl_node(Fun, Lft, Acc))).
 
 -spec foldr_node(fold_fn(), maybe_tree_node(), term()) -> term().
 foldr_node(_Fun, nil, Acc)                 -> Acc;
-foldr_node(Fun, {Key, Val}, Acc)           -> Fun(Key, Val, Acc);
 foldr_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldr_node(Fun, Lft, Fun(Key, Val, foldr_node(Fun, Rgt, Acc))).
 
 -define(MAYBE_BREAK(Result),
@@ -777,12 +774,10 @@ foldr_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldr_node(Fun, Lft, Fun(Key, V
 
 -spec foldl_while_node(fold_while_fn(), maybe_tree_node(), term()) -> term().
 foldl_while_node(_Fun, nil, Acc)                 -> Acc;
-foldl_while_node(Fun, {Key, Val}, Acc)           -> ?MAYBE_BREAK(Fun(Key, Val, Acc));
 foldl_while_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldl_while_node(Fun, Rgt, ?MAYBE_BREAK(Fun(Key, Val, foldl_while_node(Fun, Lft, Acc)))).
 
 -spec foldr_while_node(fold_while_fn(), maybe_tree_node(), term()) -> term().
 foldr_while_node(_Fun, nil, Acc)                 -> Acc;
-foldr_while_node(Fun, {Key, Val}, Acc)           -> ?MAYBE_BREAK(Fun(Key, Val, Acc));
 foldr_while_node(Fun, {Key, Val, Lft, Rgt, _}, Acc) -> foldr_while_node(Fun, Lft, ?MAYBE_BREAK(Fun(Key, Val, foldr_while_node(Fun, Rgt, Acc)))).
 
 -spec node_index(tree_node()) -> index().
