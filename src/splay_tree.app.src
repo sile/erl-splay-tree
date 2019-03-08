@@ -1,6 +1,6 @@
 {application,splay_tree,
              [{description,"A splay-tree implementation"},
-              {vsn,"1.0.1"},
+              {vsn,"1.1.0"},
               {registered,[]},
               {modules,[]},
               {applications,[kernel,stdlib]},
